@@ -1,0 +1,32 @@
+{
+  "name": "pailingual-odata-filter",
+  "version": "1.1.0",
+  "description": "Plugin for pailingual-odata that implements support arrow function in $filter query option",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": {
+    "name": "Gennady Pundikov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genusP/pailingual-odata-filter.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/estree": "0.0.39",
+    "acorn": "6.0.5",
+    "pailingual-odata": "file:../pailingual-odata/pailingual-odata-1.1.0-alpha.1.tgz",
+    "typescript": "^3.1.6"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.0",
+    "@types/node": "^8.0.14",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "mocha ./tests",
+    "tsc": "tsc"
+  }
+}
