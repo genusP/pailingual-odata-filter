@@ -42,12 +42,12 @@
   <ItemGroup>
     <TypeScriptCompile Include="filterExpressionBuilder.ts" />
     <TypeScriptCompile Include="index.ts" />
-    <TypeScriptCompile Include="tests\filterExpressionTests.ts">
+    <TypeScriptCompile Include="tests\expressionTests.ts">
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
     <TypeScriptCompile Include="tests\models.ts" />
     <TypeScriptCompile Include="pailingualFilterTransform.ts" />
-    <TypeScriptCompile Include="tests\pailingualFilterTransform.ts">
+    <TypeScriptCompile Include="tests\transformTests.ts">
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
     <None Include="tests\template.ts" />

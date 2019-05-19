@@ -17,27 +17,47 @@ describe("Pailingual filter expression transform", () => {
 function testTransform(name, filterExpr, expectedExpr) {
     it(name, () => __awaiter(this, void 0, void 0, function* () {
         const actual = yield emitJs(filterExpr);
-        const expected = `function test() {\r\n    ({}.entities.$filter(${expectedExpr}));\r\n}\r\n
-`;
+        const expected = `function test() {\r\n    ({}.entities.$filter(${expectedExpr}));\r\n}\r\n`;
         chai_1.assert.equal(actual, expected);
     }));
 }
 const compilerOptions = {
     target: ts.ScriptTarget.ES2018,
-    alwaysStrict: false
+    alwaysStrict: false,
+    moduleResolution: ts.ModuleResolutionKind.NodeJs
 };
 const compilerHost = ts.createCompilerHost(compilerOptions);
 function emitJs(filterExpr) {
-    const program = ts.createProgram(["tests/template.ts"], compilerOptions, compilerHost);
+    const program = ts.createProgram(["index.ts", "tests/template.ts"], compilerOptions, compilerHost);
     return new Promise((resolve, reject) => program.emit(undefined, (fn, data, wbom, one) => {
-        resolve(data);
+        if (fn.endsWith("tests/template.js"))
+            resolve(data);
     }, undefined, undefined, {
         before: [
             setExpression(filterExpr),
             () => sf => { console.log(ts.createPrinter().printFile(sf)); return sf; },
             pailingualFilterTransform_1.default(program)
         ]
-    }));
+    }))
+        .then(_ => {
+        const allDiagnostics = program.getGlobalDiagnostics()
+            .concat(program.getOptionsDiagnostics())
+            .concat(program.getSyntacticDiagnostics())
+            .concat(program.getSemanticDiagnostics())
+            .concat(program.getDeclarationDiagnostics());
+        if (allDiagnostics.length == 0)
+            return Promise.resolve(_);
+        else
+            return Promise.reject(allDiagnostics.map(diagnostic => {
+                var res = "";
+                if (diagnostic.file) {
+                    const pos = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+                    const fileName = diagnostic.file.fileName;
+                    res = `${fileName}:${pos.line}:${pos.character} `;
+                }
+                res += `${ts.DiagnosticCategory[diagnostic.category]} TS${diagnostic.code}: ${diagnostic.messageText}`;
+            }));
+    });
 }
 function setExpression(expr) {
     function visitor(ctx, sf) {
@@ -69,4 +89,4 @@ function setExpression(expr) {
         return (sf) => ts.visitNode(sf, visitor(ctx, sf));
     };
 }
-//# sourceMappingURL=pailingualFilterTransform.js.map
+//# sourceMappingURL=transformTests.js.map

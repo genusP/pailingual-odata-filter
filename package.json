@@ -14,6 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/estree": "0.0.39",
+    "@typescript-eslint/typescript-estree": "^1.9.0",
     "acorn": "6.0.5",
     "pailingual-odata": "file:../pailingual-odata/pailingual-odata-1.1.0-alpha.1.tgz",
     "typescript": "^3.1.6"

@@ -14,16 +14,15 @@ function setParser(parser) {
     parse = parser;
 }
 exports.setParser = setParser;
-function buildExpression(func, params, metadata, options) {
-    if (!parse)
-        throw new Error("Parser initilization needed. Call setParser().");
-    let expressionBody = normalizeScript(func.toString());
-    let nodes = parse(expressionBody);
+function buildExpression(funcOrNodes, params, metadata, options) {
+    const nodes = typeof funcOrNodes === "function"
+        ? getNodes(funcOrNodes)
+        : funcOrNodes;
     try {
         return new Visitor({
             "0": { type: metadata },
             "1": getParamsMetadata(params)
-        }, expressionBody.split("\n"), false, options)
+        }, [], false, options)
             .transform(nodes, metadata)
             .expression;
     }
@@ -32,6 +31,12 @@ function buildExpression(func, params, metadata, options) {
     }
 }
 exports.buildExpression = buildExpression;
+function getNodes(func) {
+    if (!parse)
+        throw new Error("Parser initilization needed. Call setParser().");
+    let expressionBody = normalizeScript(func.toString());
+    return parse(expressionBody);
+}
 function normalizeScript(script) {
     return script.replace(/function([^(]*)/, "function p");
 }

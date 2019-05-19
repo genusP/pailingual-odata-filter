@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function test() {
-    var ctx;
-    ctx.entities.$filter("PLACE-HOLDER");
+    ({}.entities.$filter(e => e.field === "1"));
 }
 //# sourceMappingURL=template.js.map

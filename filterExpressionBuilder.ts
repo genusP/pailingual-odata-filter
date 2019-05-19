@@ -18,18 +18,17 @@ export function setParser(parser: ParserDelegate) {
     parse = parser;
 }
 
-export function buildExpression(func: Function, params: object, metadata: EdmEntityType, options: Options): string {
-    if (!parse)
-        throw new Error("Parser initilization needed. Call setParser().");
-    let expressionBody = normalizeScript(func.toString());
-    let nodes = parse(expressionBody);
+export function buildExpression(funcOrNodes: Function | estree.Node, params: object, metadata: EdmEntityType, options: Options): string {
+    const nodes = typeof funcOrNodes === "function"
+        ? getNodes(funcOrNodes)
+        : funcOrNodes;
     try {
         return new Visitor(
             {
                 "0": { type: metadata },
                 "1": getParamsMetadata(params)
             },
-            expressionBody.split("\n"),
+            [],
             false,
             options
         )
@@ -40,6 +39,14 @@ export function buildExpression(func: Function, params: object, metadata: EdmEnt
         throw new FilterExpressionParseError(`Unable parse filter expression: ${e.message}`,e );
     }
 }
+
+function getNodes(func: Function): estree.Node {
+    if (!parse)
+        throw new Error("Parser initilization needed. Call setParser().");
+    let expressionBody = normalizeScript(func.toString());
+    return parse(expressionBody);
+}
+
 function normalizeScript(script: string): string {
         return script.replace(/function([^(]*)/, "function p");
 }
