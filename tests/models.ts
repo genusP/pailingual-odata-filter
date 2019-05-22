@@ -1,5 +1,5 @@
-﻿import { IEntityBase, IComplexBase, IApiContextBase } from "pailingual-odata"
-import { ApiMetadata, EdmTypes, EdmEntityType, EdmEnumType, EdmTypeReference, EdmEntityTypeReference, OperationMetadata, Namespace } from "pailingual-odata/src/metadata";
+﻿import { IEntityBase, IComplexBase, IApiContextBase, ApiContext } from "pailingual-odata"
+import { metadata as md } from "pailingual-odata";
 
 export enum TestEnum {
     Type1,
@@ -10,7 +10,9 @@ export interface ComplexType extends IComplexBase{
     field: string
 }
 
-export interface Context extends IApiContextBase {
+export type Context = ApiContext<IContext>;
+
+export interface IContext extends IApiContextBase {
     readonly Parents: Parent[];
     readonly Childs: Child[];
     readonly Singleton: Parent;
@@ -97,98 +99,98 @@ export interface OpenType extends IEntityBase {
     prop4?: boolean;
 }
 
-const complexT= new EdmEntityType ("ComplexType", { "field": new EdmTypeReference(EdmTypes.String)});
+const complexT= new md.EdmEntityType ("ComplexType", { "field": new md.EdmTypeReference(md.EdmTypes.String)});
 
-const enumT = new EdmEnumType("TestEnum",
+const enumT = new md.EdmEnumType("TestEnum",
     /*members*/ {
         "Type1": TestEnum.Type1,
         "Type2": TestEnum.Type2
     }
 );
 
-const parentET = new EdmEntityType("Parent",
+const parentET = new md.EdmEntityType("Parent",
     {//properties
-        "id": new EdmTypeReference(EdmTypes.Int32, /*nullable*/false),
-        "strField": new EdmTypeReference(EdmTypes.String, /*nullable*/false),
-        "numberField": new EdmTypeReference(EdmTypes.Int32),
-        "boolField": new EdmTypeReference(EdmTypes.Boolean),
-        "dateField": new EdmTypeReference(EdmTypes.DateTimeOffset),
-        "guid": new EdmTypeReference(EdmTypes.Guid),
-        "complexType": new EdmTypeReference(complexT),
-        "enumField": new EdmTypeReference(enumT)
+        "id": new md.EdmTypeReference(md.EdmTypes.Int32, /*nullable*/false),
+        "strField": new md.EdmTypeReference(md.EdmTypes.String, /*nullable*/false),
+        "numberField": new md.EdmTypeReference(md.EdmTypes.Int32),
+        "boolField": new md.EdmTypeReference(md.EdmTypes.Boolean),
+        "dateField": new md.EdmTypeReference(md.EdmTypes.DateTimeOffset),
+        "guid": new md.EdmTypeReference(md.EdmTypes.Guid),
+        "complexType": new md.EdmTypeReference(complexT),
+        "enumField": new md.EdmTypeReference(enumT)
     },
     {},    //navProperties
     ["id"] //keys
 );
 
-const childDetailsET = new EdmEntityType("ChildDetail",
+const childDetailsET = new md.EdmEntityType("ChildDetail",
     { //properties
-        "detailsId": new EdmTypeReference(EdmTypes.Int32, false),
-        "childId": new EdmTypeReference(EdmTypes.Int32, false),
-        "enumField": new EdmTypeReference(enumT, true)
+        "detailsId": new md.EdmTypeReference(md.EdmTypes.Int32, false),
+        "childId": new md.EdmTypeReference(md.EdmTypes.Int32, false),
+        "enumField": new md.EdmTypeReference(enumT, true)
     });
 
-const childET = new EdmEntityType("Child",
+const childET = new md.EdmEntityType("Child",
     { //properties
-        "id": new EdmTypeReference(EdmTypes.String, false),
-        "parentId": new EdmTypeReference(EdmTypes.Int32,false),
-        "childField": new EdmTypeReference(EdmTypes.String, false)
+        "id": new md.EdmTypeReference(md.EdmTypes.String, false),
+        "parentId": new md.EdmTypeReference(md.EdmTypes.Int32,false),
+        "childField": new md.EdmTypeReference(md.EdmTypes.String, false)
     },
     { //navProperties
-        "details": new EdmEntityTypeReference(childDetailsET, true, /*collection*/ true),
-        "parent": new EdmEntityTypeReference(parentET, true, /*collection*/ false),
+        "details": new md.EdmEntityTypeReference(childDetailsET, true, /*collection*/ true),
+        "parent": new md.EdmEntityTypeReference(parentET, true, /*collection*/ false),
     },
     ["id"] //keys
 );
 
-const testEntityET = new EdmEntityType("TestEntity",
+const testEntityET = new md.EdmEntityType("TestEntity",
     {
-        "id": new EdmTypeReference(EdmTypes.Int32, false),
-        "parentId": new EdmTypeReference(EdmTypes.Int32, false),
-        "testEntityField": new EdmTypeReference(EdmTypes.String, false)
+        "id": new md.EdmTypeReference(md.EdmTypes.Int32, false),
+        "parentId": new md.EdmTypeReference(md.EdmTypes.Int32, false),
+        "testEntityField": new md.EdmTypeReference(md.EdmTypes.String, false)
     })
 
-parentET.navProperties["childs"] = new EdmEntityTypeReference(childET, true, /*collection*/ true);
-parentET.navProperties["entityes"] = new EdmEntityTypeReference(testEntityET, true, /*collection*/ true);
+parentET.navProperties["childs"] = new md.EdmEntityTypeReference(childET, true, /*collection*/ true);
+parentET.navProperties["entityes"] = new md.EdmEntityTypeReference(testEntityET, true, /*collection*/ true);
 
-const parentExET = new EdmEntityType("ParentEx",
+const parentExET = new md.EdmEntityType("ParentEx",
     { //properties:
-        exField: new EdmTypeReference(EdmTypes.String, false)
+        exField: new md.EdmTypeReference(md.EdmTypes.String, false)
     },
     {}, //navProperties
     undefined, //keys
     parentET //baseType
 );
 
-const openTypeET = new EdmEntityType("OpenType", {});
+const openTypeET = new md.EdmEntityType("OpenType", {});
 openTypeET.openType = true;
 
-var namespace = new Namespace("Default");
+var namespace = new md.Namespace("Default");
 namespace.addTypes(parentET, childET, childDetailsET, complexT, parentExET, openTypeET, enumT);
 namespace.addOperations(
         //unbound Func
-        new OperationMetadata("unboundFuncPrimitive", /*isAction*/false, /*parameters*/[{ name:"testArg", type: new EdmTypeReference(EdmTypes.String, false) }], /*returnType*/new EdmTypeReference(EdmTypes.String)),
-        new OperationMetadata("unboundFuncPrimitiveCol",/*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(EdmTypes.String, true, /*col*/true)),
-        new OperationMetadata("unboundFuncComplex", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmEntityTypeReference(complexT)),
-        new OperationMetadata("unboundFuncComplexCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new EdmEntityTypeReference(complexT, true, /*col*/true)),
-        new OperationMetadata("unboundFuncEntity", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new EdmEntityTypeReference(parentET)),
-        new OperationMetadata("unboundFuncEntityCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new EdmEntityTypeReference(parentET, true, /*col*/true)),
+        new md.OperationMetadata("unboundFuncPrimitive", /*isAction*/false, /*parameters*/[{ name:"testArg", type: new md.EdmTypeReference(md.EdmTypes.String, false) }], /*returnType*/new md.EdmTypeReference(md.EdmTypes.String)),
+        new md.OperationMetadata("unboundFuncPrimitiveCol",/*isAction*/false, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(md.EdmTypes.String, true, /*col*/true)),
+        new md.OperationMetadata("unboundFuncComplex", /*isAction*/false, /*parameters*/undefined, /*returnType*/new md.EdmEntityTypeReference(complexT)),
+        new md.OperationMetadata("unboundFuncComplexCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new md.EdmEntityTypeReference(complexT, true, /*col*/true)),
+        new md.OperationMetadata("unboundFuncEntity", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new md.EdmEntityTypeReference(parentET)),
+        new md.OperationMetadata("unboundFuncEntityCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new md.EdmEntityTypeReference(parentET, true, /*col*/true)),
         //unbound actions
-        new OperationMetadata("unboundActionPrimitive", /*isAction*/true, /*parameters*/[{ name: "testArg", type: new EdmTypeReference(EdmTypes.String, false) }, { name:"num", type: new EdmTypeReference(EdmTypes.Int32, false) }], /*returnType*/ new EdmTypeReference(EdmTypes.String)),
-        new OperationMetadata("unboundActionPrimitiveCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/ new EdmTypeReference(EdmTypes.String, true, /*col*/true)),
-        new OperationMetadata("unboundActionComplex", /*isAction*/true, /*parameters*/undefined, /*returnType*/new EdmTypeReference(complexT)),
-        new OperationMetadata("unboundActionComplexCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/ new EdmTypeReference(complexT, true, /*col*/true)),
-        new OperationMetadata("unboundActionEntity", /*isAction*/true, /*parameters*/undefined, /*returnType*/new EdmTypeReference(parentET)),
-        new OperationMetadata("unboundActionEntityCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/new EdmTypeReference(parentET, false, /*col*/true)),
-        new OperationMetadata("unboundAction", /*isAction*/true, /*parameters*/undefined),
+        new md.OperationMetadata("unboundActionPrimitive", /*isAction*/true, /*parameters*/[{ name: "testArg", type: new md.EdmTypeReference(md.EdmTypes.String, false) }, { name:"num", type: new md.EdmTypeReference(md.EdmTypes.Int32, false) }], /*returnType*/ new md.EdmTypeReference(md.EdmTypes.String)),
+        new md.OperationMetadata("unboundActionPrimitiveCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/ new md.EdmTypeReference(md.EdmTypes.String, true, /*col*/true)),
+        new md.OperationMetadata("unboundActionComplex", /*isAction*/true, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(complexT)),
+        new md.OperationMetadata("unboundActionComplexCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/ new md.EdmTypeReference(complexT, true, /*col*/true)),
+        new md.OperationMetadata("unboundActionEntity", /*isAction*/true, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(parentET)),
+        new md.OperationMetadata("unboundActionEntityCol", /*isAction*/true, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(parentET, false, /*col*/true)),
+        new md.OperationMetadata("unboundAction", /*isAction*/true, /*parameters*/undefined),
         //Entity set operations
-        new OperationMetadata("colBoundFuncPrimitive", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new EdmTypeReference(EdmTypes.Int32),/*bindingTo*/new EdmEntityTypeReference(parentET, true,/*col*/true)),
-        new OperationMetadata("colBoundAction", /*isAction*/true, /*parameters*/undefined, /*returnType*/undefined, /*bindingTo*/new EdmEntityTypeReference(parentET, true, /*col*/true)),
+        new md.OperationMetadata("colBoundFuncPrimitive", /*isAction*/false, /*parameters*/undefined, /*returnType*/ new md.EdmTypeReference(md.EdmTypes.Int32),/*bindingTo*/new md.EdmEntityTypeReference(parentET, true,/*col*/true)),
+        new md.OperationMetadata("colBoundAction", /*isAction*/true, /*parameters*/undefined, /*returnType*/undefined, /*bindingTo*/new md.EdmEntityTypeReference(parentET, true, /*col*/true)),
         //entity operations
-        new OperationMetadata("entityBoundFuncPrimitive", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(EdmTypes.String), /*bindingTo*/ new EdmEntityTypeReference(parentET)),
-        new OperationMetadata("entityBoundFuncComplexCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(complexT, true, /*col*/true), /*bindingTo*/new EdmEntityTypeReference(parentET)),
-        new OperationMetadata("entityBoundFuncEntityCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new EdmTypeReference(childET, true, /*col*/true), /*bindingTo*/new EdmEntityTypeReference(parentET)),
-        new OperationMetadata("boundAction", /*isAction*/true, /*parameters*/undefined, /*returnType*/undefined, /*bindingTo*/new EdmEntityTypeReference(parentET)),
+        new md.OperationMetadata("entityBoundFuncPrimitive", /*isAction*/false, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(md.EdmTypes.String), /*bindingTo*/ new md.EdmEntityTypeReference(parentET)),
+        new md.OperationMetadata("entityBoundFuncComplexCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(complexT, true, /*col*/true), /*bindingTo*/new md.EdmEntityTypeReference(parentET)),
+        new md.OperationMetadata("entityBoundFuncEntityCol", /*isAction*/false, /*parameters*/undefined, /*returnType*/new md.EdmTypeReference(childET, true, /*col*/true), /*bindingTo*/new md.EdmEntityTypeReference(parentET)),
+        new md.OperationMetadata("boundAction", /*isAction*/true, /*parameters*/undefined, /*returnType*/undefined, /*bindingTo*/new md.EdmEntityTypeReference(parentET)),
     );
 
 
@@ -198,4 +200,4 @@ var entitySets = {
     "OpenTypes": openTypeET
 };
 var singletons = { "Singleton": parentET };
-export var metadata = new ApiMetadata("/api","Container", {"Default": namespace}, entitySets, singletons);
+export var metadata = new md.ApiMetadata("/api","Container", {"Default": namespace}, entitySets, singletons);

@@ -34,6 +34,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="oDataQueryFuncs.ts" />
     <Content Include="package.json" />
     <Content Include="README.md" />
@@ -42,6 +43,7 @@
   <ItemGroup>
     <TypeScriptCompile Include="filterExpressionBuilder.ts" />
     <TypeScriptCompile Include="index.ts" />
+    <TypeScriptCompile Include="tests\cases.ts" />
     <TypeScriptCompile Include="tests\expressionTests.ts">
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
@@ -50,7 +52,6 @@
     <TypeScriptCompile Include="tests\transformTests.ts">
       <TestFramework>Mocha</TestFramework>
     </TypeScriptCompile>
-    <None Include="tests\template.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="tests\" />

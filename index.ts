@@ -1,8 +1,6 @@
 import { parse } from "acorn";
 import { setParser, buildExpression } from "./filterExpressionBuilder"
-import { ExtendOptions, Options } from "pailingual-odata/src/options";
-import { Query } from "pailingual-odata/src/query";
-import { CollectionSource } from "pailingual-odata/src/collectionSource";
+import { ExtendOptions, Options, Query, CollectionSource } from "pailingual-odata";
 import { ODataFunctions } from "./oDataQueryFuncs";
 
 
@@ -54,7 +52,7 @@ function filterToString(this: Query, expr: string | FilterExpr, options: Options
 //define plugin
 export default {
     register(): ExtendOptions {
-        setParser(f => parse(f, { locations: true }) as any);
+        setParser(f => parse(f, { preserveParens:true }) as any);
         return {
             collectionSourceFn: {$filter},
             queryFn: { processParametr }

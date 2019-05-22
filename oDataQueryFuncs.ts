@@ -1,6 +1,6 @@
-import { EntityArray } from "pailingual-odata";
-import { EdmTypes } from "pailingual-odata/src/metadata";
+import { EntityArray, metadata  } from "pailingual-odata";
 
+var EdmTypes = metadata.EdmTypes;
 //OData protocol built-in functions
 export interface ODataFunctions {
     concat<T extends string | EntityArray<any>>(left: T, right: T): T;
@@ -37,7 +37,7 @@ export interface ODataFunctions {
     round(value: number): number;
 }
 
-export type QueryFuncMetadata = { return: EdmTypes, arguments: EdmTypes[] };
+export type QueryFuncMetadata = { return: metadata.EdmTypes, arguments: metadata.EdmTypes[] };
 
 export var ODataFunctionsMetadata: Record<string, QueryFuncMetadata[]> = {
     "concat": [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.String] }],
