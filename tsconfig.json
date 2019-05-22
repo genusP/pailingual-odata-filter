@@ -3,7 +3,8 @@
     "module": "commonjs",
     "target": "es6",
     "lib": ["es6", "dom"],
-    "sourceMap": true
+    "sourceMap": true,
+    "experimentalDecorators": true
   },
   "exclude": [
     "node_modules",

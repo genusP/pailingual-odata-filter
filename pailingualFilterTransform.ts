@@ -1,9 +1,10 @@
 import * as ts from "typescript";
 import * as estree from "estree";
-import { metadata } from "pailingual-odata";
+import { metadata as md } from "pailingual-odata";
 import { buildExpression } from "./filterExpressionBuilder";
+import { EdmEntityType } from "pailingual-odata/dist/esm/metadata";
 
-export default function (metadata: metadata.ApiMetadata) {
+export default function (metadata: md.ApiMetadata) {
     return (program: ts.Program): ts.TransformerFactory<ts.SourceFile> =>{
         return (context: ts.TransformationContext) => {
             return (file: ts.SourceFile) => visitNodeAndChildren(file, program, file, metadata, context) as any;
@@ -11,11 +12,11 @@ export default function (metadata: metadata.ApiMetadata) {
     }
 }
 
-function visitNodeAndChildren(node: ts.Node, prg: ts.Program, sf: ts.SourceFile, metadata: metadata.ApiMetadata, ctx: ts.TransformationContext): ts.Node {
+function visitNodeAndChildren(node: ts.Node, prg: ts.Program, sf: ts.SourceFile, metadata: md.ApiMetadata, ctx: ts.TransformationContext): ts.Node {
     return ts.visitEachChild(transformExprToStr(node, prg, sf, metadata, ctx), c => visitNodeAndChildren(c, prg, sf, metadata, ctx), ctx)
 }
 
-export function transformExprToStr(node: ts.Node, prg: ts.Program, sf: ts.SourceFile, metadata: metadata.ApiMetadata, ctx: ts.TransformationContext): ts.Node {
+export function transformExprToStr(node: ts.Node, prg: ts.Program, sf: ts.SourceFile, metadata: md.ApiMetadata, ctx: ts.TransformationContext): ts.Node {
     if (ts.isCallExpression(node)
         && node.arguments.length > 0)
     {
@@ -25,23 +26,55 @@ export function transformExprToStr(node: ts.Node, prg: ts.Program, sf: ts.Source
             && callExp.name.text == "$filter"
             && ts.isArrowFunction(firstArg) || ts.isFunctionDeclaration(firstArg)
         ) {
-            const entityType = getEntityMetadata(node.expression, prg, metadata, ctx);
-            const estreeNode = getEstreeNode(firstArg);
-            var expr = buildExpression(estreeNode, null, entityType, {});
-            return ts.updateCall(
-                node,
-                node.expression,
-                node.typeArguments,
-                [ts.createStringLiteral(expr)]
-            );
+            const entityType = getEntityMetadataFromComment(firstArg, prg, metadata)
+                || getEntityMetadataByApiContext(node.expression, prg, metadata, ctx);
+            if (entityType) {
+                const estreeNode = getEstreeNode(firstArg);
+                var expr = buildExpression(estreeNode, null, entityType, {});
+                return ts.updateCall(
+                    node,
+                    node.expression,
+                    node.typeArguments,
+                    [ts.createStringLiteral(expr)]
+                );
+            }
         }
     }
     return node;
 }
 
-function getEntityMetadata(node: ts.Node, prg: ts.Program, metadata: metadata.ApiMetadata, ctx: ts.TransformationContext) {
+var odataTypeDeclareRegExp = /\/[*\/]\s*@odata.type\s+(\S+)/
+
+function getEntityMetadataFromComment(node: ts.FunctionDeclaration | ts.ArrowFunction, prg: ts.Program, metadata: md.ApiMetadata) {
+    if (node.parameters.length > 0) {
+        const typeChecker = prg.getTypeChecker();
+        const sourceType = typeChecker.getTypeAtLocation(node.parameters[0]); //get type of first parametr of filter expression
+        if (sourceType && sourceType.aliasTypeArguments) {
+            const entityType = sourceType.aliasTypeArguments[0]; //get type entity (FilterSource<TEntity>)
+            const typeDeclaraton = entityType.symbol.declarations[0]; //get type declaration node
+            let parent: ts.Node = typeDeclaraton.parent;
+            while (parent) {
+                if (ts.isSourceFile(parent)) { //find source file contains type declaration
+                    const srcText = parent.getText();
+                    //get declaration leading comments match with regular expression
+                    const commmentMatches = ts.getLeadingCommentRanges(srcText, typeDeclaraton.getFullStart())
+                        .map(r => srcText.substring(r.pos, r.end).match(odataTypeDeclareRegExp));
+                    //if comment found get EntityType by full name
+                    if (commmentMatches && commmentMatches.length > 0) {
+                        const metadataRef = commmentMatches[0][1];
+                        return md.ApiMetadata.getEdmTypeMetadata(metadataRef, metadata.namespaces) as EdmEntityType;
+                    }
+                }
+                parent = parent.parent;
+            }
+        }
+    }
+    return undefined;
+}
+
+function getEntityMetadataByApiContext(node: ts.Node, prg: ts.Program, metadata: md.ApiMetadata, ctx: ts.TransformationContext) {
     const typeChecker = prg.getTypeChecker();
-    let entityType: metadata.EdmEntityType;
+    let entityType: md.EdmEntityType;
     try {
         const visitor = node2 => {
             var type = typeChecker.getTypeAtLocation(node2);
@@ -57,7 +90,7 @@ function getEntityMetadata(node: ts.Node, prg: ts.Program, metadata: metadata.Ap
                 const propertyName = node2.name.getText();
                 if (entityType) {
                     const typeRef = entityType.navProperties[propertyName] || entityType.properties[propertyName]
-                    entityType = typeRef!.type as metadata.EdmEntityType
+                    entityType = typeRef!.type as md.EdmEntityType
                 }
                 else
                     entityType = metadata.entitySets[propertyName] || metadata.singletons[propertyName];

@@ -1,12 +1,14 @@
-import { Context } from "./models";
+import { Context, Parent } from "./models";
+import { EntitySet } from "pailingual-odata";
 
 export type TestCase = {
     name: string,
     expression: (ctx: Context) => string,
-    expectedUrl: string,
+    expectedUrl?: string,
     expectedTransform: string
 }
 export default [
+    { name: "metadata", expression: ctx => (parents: EntitySet<Parent>) => parents.$filter(e => e.id == 1), expectedTransform: "(parents: EntitySet<Parent>) => parents.$filter(\"id eq 1\")" },
     { name: "1", expression: ctx => ctx.Parents.$filter(e => e.id == 1).$url(), expectedUrl: "/api/Parents?$filter=id eq 1", expectedTransform: "ctx.Parents.$filter(\"id eq 1\").$url()" },
     {
         name: "guid",

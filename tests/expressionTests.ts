@@ -11,10 +11,12 @@ describe("Filter", () => {
     Pailingual.use(filterPlugin)
     const context = Pailingual.createApiContext<IContext>(metadata);
     for (let testCase of cases) {
-        it(testCase.name, () => {
-            const actual = testCase.expression(context);
-            assert.equal(actual, testCase.expectedUrl);
-        })
+        if ("expectedUrl" in Object.getOwnPropertyNames(testCase)) {
+            it(testCase.name, () => {
+                const actual = testCase.expression(context);
+                assert.equal(actual, testCase.expectedUrl);
+            });
+        }
     }
 
     it("Parameters bool", () => {

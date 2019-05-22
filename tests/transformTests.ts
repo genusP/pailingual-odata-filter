@@ -6,8 +6,8 @@ import { metadata } from "./models";
 import { TestCase } from "./cases";
 
 
-describe("Transform", function () {
-    this.timeout(5000);
+describe("Transform", function ()
+{   
     const testCasesFilePath = path.join(__dirname, "cases.ts");
     
     const compilerOptions: ts.CompilerOptions = {
@@ -39,11 +39,14 @@ describe("Transform", function () {
 
     function testTransform(name: string, expression: ts.ArrowFunction, expected: string) {
         it(name, () => {
-            const ctx: any = {}
-            const visitor = (n) => ts.visitEachChild(transformExprToStr(n, program, sf, metadata, ctx), visitor, ctx)
-            var transformed = visitor(expression.body)
-            const actual = ts.createPrinter().printNode(ts.EmitHint.Unspecified, transformed, sf);
+            const transformFactory: ts.TransformerFactory<ts.Node> = ctx => {
+                const visitor = (n: ts.Node) => ts.visitEachChild(transformExprToStr(n, program, sf, metadata, ctx), visitor, ctx)
+                return visitor;
+            };
+            var { diagnostics, transformed } =ts.transform(expression.body, [transformFactory]);
+            const actual = ts.createPrinter().printNode(ts.EmitHint.Unspecified, transformed[0], sf);
             assert.equal(actual, expected);
+            assert.isEmpty(diagnostics, "Transform diagnostics not empty");
         })
     }
 });

@@ -1,11 +1,12 @@
-﻿import { IEntityBase, IComplexBase, IApiContextBase, ApiContext } from "pailingual-odata"
-import { metadata as md } from "pailingual-odata";
+﻿import { IEntityBase, IComplexBase, IApiContextBase, ApiContext, metadata as md } from "pailingual-odata"
 
+//@odata.type Default.TestEnum
 export enum TestEnum {
     Type1,
     Type2
 }
 
+//@odata.type Default.ComplexType
 export interface ComplexType extends IComplexBase{
     field: string
 }
@@ -38,6 +39,7 @@ export interface IContext extends IApiContextBase {
     }
 }
 
+//@odata.type Default.Parent
 export interface Parent extends IEntityBase {
     id: number;
     strField: string;
@@ -67,10 +69,12 @@ export interface Parent extends IEntityBase {
     }
 }
 
+//@odata.type Default.ParentEx
 export interface ParentEx extends Parent {
     exField: string;
 }
 
+//@odata.type Default.Child
 export interface Child extends IEntityBase {
     id: string;
     parentId: number;
@@ -80,18 +84,21 @@ export interface Child extends IEntityBase {
     details?: ChildDetails[];
 }
 
+//@odata.type Default.ChildDetails
 export interface ChildDetails extends IEntityBase {
     detailsId: number
     childId: number
     enumField?: TestEnum
 }
 
+//@odata.type Default.Parent
 export interface TestEntity extends IEntityBase {
     id: number;
     parentId: number;
     testEntityField: string;
 }
 
+//@odata.type Default.OpenType
 export interface OpenType extends IEntityBase {
     prop1: number;
     prop2?: string;
@@ -166,7 +173,7 @@ const openTypeET = new md.EdmEntityType("OpenType", {});
 openTypeET.openType = true;
 
 var namespace = new md.Namespace("Default");
-namespace.addTypes(parentET, childET, childDetailsET, complexT, parentExET, openTypeET, enumT);
+namespace.addTypes(parentET, childET, childDetailsET, complexT, parentExET, openTypeET, enumT, testEntityET);
 namespace.addOperations(
         //unbound Func
         new md.OperationMetadata("unboundFuncPrimitive", /*isAction*/false, /*parameters*/[{ name:"testArg", type: new md.EdmTypeReference(md.EdmTypes.String, false) }], /*returnType*/new md.EdmTypeReference(md.EdmTypes.String)),
