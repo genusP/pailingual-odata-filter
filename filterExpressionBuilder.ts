@@ -16,14 +16,17 @@ export function setParser(parser: ParserDelegate) {
     parse = parser;
 }
 
-export function buildExpression(funcOrNodes: Function | estree.Node, params: object, metadata: metadata.EdmEntityType, options: Options): string {
+export type ParameterProvider = { type: metadata.EdmEntityType, getValue: (p: string) => ValueProvider };
+export type ValueProvider = (type: metadata.EdmTypes | metadata.EdmEnumType, options: Options)=>any
+
+export function buildExpression(funcOrNodes: Function | estree.Node, params: object | ParameterProvider, metadata: metadata.EdmEntityType, options: Options): string {
     const nodes = typeof funcOrNodes === "function"
         ? getNodes(funcOrNodes)
         : funcOrNodes;
     try {
         return new Visitor(
             {
-                "0": { type: metadata },
+                "0": { type: metadata, getValue: undefined },
                 "1": getParamsMetadata(params)
             },
             false,
@@ -48,15 +51,26 @@ function normalizeScript(script: string): string {
         return script.replace(/function([^(]*)/, "function p");
 }
 
-function getParamsMetadata(params: Record<string, any>): { type: metadata.EdmEntityType, getValue: (p: string) => any } {
+function getParamsMetadata(params: Record<string, any>): ParameterProvider {
+    const definedProps = Object.getOwnPropertyNames(params || {});
+    if (definedProps.length == 2 && definedProps.indexOf("type") > -1 && definedProps.indexOf("getValue"))
+        return params as ParameterProvider
     let properties: Record<string, metadata.EdmTypeReference> = {};
-    for (let prop of Object.keys(params || {})) {
+    for (let prop of definedProps) {
         properties[prop] = new metadata.EdmTypeReference(metadata.EdmTypes.Unknown);
     }
     return {
         type: new metadata.EdmEntityType("Params", properties),
         getValue(p) {
-            return params[p];
+            const val = params[p];
+            return (curType, options) => {
+                var res: string | null = null;
+                if (Array.isArray(val))
+                    res = `(${val.map(v => serialization.serializeValue(v, curType as metadata.EdmTypes, true, options)).join(',')})`
+                else
+                    res = serialization.serializeValue(val, curType as metadata.EdmTypes, true, options);
+                return res || this.valueProvider.toString() as string;
+            }
         }
     };
 }
@@ -65,22 +79,24 @@ class Expression {
     constructor(
         public readonly expression: string,
         public readonly type: metadata.EdmTypeReference | undefined,
-        public readonly value?:any,
+        private readonly valueProvider?: ValueProvider,
     ) { }
 
     toString(type: metadata.EdmTypes | metadata.EdmEntityType | metadata.EdmEnumType | metadata.EdmTypeReference | undefined, options: Options): string {
-        if (this.value != null) {
+        if (this.valueProvider != null) {
             let curType = type instanceof metadata.EdmTypeReference
                 ? type.type
                 : type || (this.type && this.type.type);
-            var res: string | null = null;
+            if (!(curType instanceof metadata.EdmEntityType))
+                return this.valueProvider(curType, options);
+            /*var res: string | null = null;
             if (curType) {
-                if (Array.isArray(this.value))
-                    res = `(${this.value.map(v => serialization.serializeValue(v, curType as metadata.EdmTypes, true, options)).join(',')})`
+                if (Array.isArray(this.valueProvider))
+                    res = `(${this.valueProvider.map(v => serialization.serializeValue(v, curType as metadata.EdmTypes, true, options)).join(',')})`
                 else
-                    res = serialization.serializeValue(this.value, curType as metadata.EdmTypes, true, options);
+                    res = serialization.serializeValue(this.valueProvider, curType as metadata.EdmTypes, true, options);
             }
-            return res || this.value.toString() as string;
+            return res || this.valueProvider.toString() as string;*/
         }
         return this.expression;
     }
@@ -90,7 +106,7 @@ const lambdaFunctions = ["any", "all"];
 
 class Visitor {
     constructor(
-        private args: Record<string, { type: metadata.EdmEntityType, getValue?: (p: string) => any }>,
+        private args: Record<string, ParameterProvider>,
         private asLambda: boolean,
         private options: Options
     ) {
@@ -127,7 +143,7 @@ class Visitor {
         const exp = this.transform(node.body, metadata);
         if (this.asLambda) {
             const paramName = (node.params[0] as estree.Identifier).name;
-            return new Expression(paramName + ":" + exp.expression, exp.type, exp.type);
+            return new Expression(paramName + ":" + exp.expression, exp.type);
         }
         return exp;
     }
@@ -214,14 +230,14 @@ class Visitor {
     transformLiteral(node: estree.Literal): Expression {
         const v = node.value == null ? "null"
             : node.value.toString();
-        return new Expression(v, undefined, node.value);
+        return new Expression(v, undefined, (t, o) => serialization.serializeValue(node.value, t, true, o));
     }
 
     transformArrayExpression(node: estree.ArrayExpression): Expression {
         return new Expression(
             "",
             undefined,
-            node.elements.map(e => this.transform(e))
+            (t, o) => "(" + node.elements.map(e => this.transform(e).toString(t, o)).join(",")+")"
         )
     }
 

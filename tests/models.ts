@@ -18,6 +18,7 @@ export interface IContext extends IApiContextBase {
     readonly Childs: Child[];
     readonly Singleton: Parent;
     readonly OpenTypes: OpenType[];
+    readonly TestEntities: TestEntity[];
 
     $$Functions: {
         unboundFuncPrimitive(testArg: string | null): string;
@@ -51,7 +52,7 @@ export interface Parent extends IEntityBase {
     enumField?: TestEnum;
 
     childs?: Child[];
-    entityes?: TestEntity[];
+    entities?: TestEntity[];
 
     $$Actions: {
         boundAction(): void;
@@ -80,18 +81,18 @@ export interface Child extends IEntityBase {
     parentId: number;
     childField: string;
     parent?: Parent;
-    firstDetail?: ChildDetails;
-    details?: ChildDetails[];
+    firstDetail?: ChildDetail;
+    details?: ChildDetail[];
 }
 
-//@odata.type Default.ChildDetails
-export interface ChildDetails extends IEntityBase {
+//@odata.type Default.ChildDetail
+export interface ChildDetail extends IEntityBase {
     detailsId: number
     childId: number
     enumField?: TestEnum
 }
 
-//@odata.type Default.Parent
+//This entity use for get metadata by context. Don`t set @odata.type
 export interface TestEntity extends IEntityBase {
     id: number;
     parentId: number;
@@ -158,7 +159,7 @@ const testEntityET = new md.EdmEntityType("TestEntity",
     })
 
 parentET.navProperties["childs"] = new md.EdmEntityTypeReference(childET, true, /*collection*/ true);
-parentET.navProperties["entityes"] = new md.EdmEntityTypeReference(testEntityET, true, /*collection*/ true);
+parentET.navProperties["entities"] = new md.EdmEntityTypeReference(testEntityET, true, /*collection*/ true);
 
 const parentExET = new md.EdmEntityType("ParentEx",
     { //properties:
@@ -204,7 +205,8 @@ namespace.addOperations(
 var entitySets = {
     "Parents": parentET,
     "Childs": childET,
-    "OpenTypes": openTypeET
+    "OpenTypes": openTypeET,
+    "TestEntities": testEntityET,
 };
 var singletons = { "Singleton": parentET };
 export var metadata = new md.ApiMetadata("/api","Container", {"Default": namespace}, entitySets, singletons);

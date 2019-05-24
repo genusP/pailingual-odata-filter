@@ -16,8 +16,8 @@ describe("Transform", function ()
         moduleResolution: ts.ModuleResolutionKind.NodeJs
     };
     const compilerHost = ts.createCompilerHost(compilerOptions)
-    const program = ts.createProgram(["index.ts", testCasesFilePath], compilerOptions, compilerHost);
-    const sf = program.getSourceFile(testCasesFilePath);
+    const prg = ts.createProgram(["index.ts", testCasesFilePath], compilerOptions, compilerHost);
+    const sf = prg.getSourceFile(testCasesFilePath);
     
     const casesExport = sf.statements.find(s => ts.isExportAssignment(s)) as ts.ExportAssignment;
     const casesArray = (casesExport.expression as any).expression as ts.ArrayLiteralExpression;
@@ -32,15 +32,16 @@ describe("Transform", function ()
                     return p;
                 }, {}) as Record<keyof TestCase, string | ts.Node>;
 
-//THIS CALL GENERATE TEST CASES
-            testTransform(<string>props.name, <ts.ArrowFunction>props.expression, <string>props.expectedTransform);
+            //THIS CALL GENERATE TEST CASES
+            if (props.expectedTransform)
+                testTransform(<string>props.name, <ts.ArrowFunction>props.expression, <string>props.expectedTransform);
         }
     }
 
     function testTransform(name: string, expression: ts.ArrowFunction, expected: string) {
         it(name, () => {
-            const transformFactory: ts.TransformerFactory<ts.Node> = ctx => {
-                const visitor = (n: ts.Node) => ts.visitEachChild(transformExprToStr(n, program, sf, metadata, ctx), visitor, ctx)
+            const transformFactory: ts.TransformerFactory<ts.Node> = transformationContext => {
+                const visitor = (n: ts.Node) => ts.visitEachChild(transformExprToStr(n, { prg, metadata, transformationContext, file:sf }), visitor, transformationContext)
                 return visitor;
             };
             var { diagnostics, transformed } =ts.transform(expression.body, [transformFactory]);
@@ -49,4 +50,33 @@ describe("Transform", function ()
             assert.isEmpty(diagnostics, "Transform diagnostics not empty");
         })
     }
+
+    it("add import serialization", () => {
+        const expected = `import { serialization } from "pailingual-odata";\r\n`;
+        const file = ts.createSourceFile("test.ts", "", ts.ScriptTarget.ESNext);
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const actual = ts.createPrinter().printFile(transformed);
+
+        assert.equal(actual, expected);
+    });
+
+    it("add import serialization to exists", () => {
+        const src = `import { Entity } from \"pailingual-odata\"`
+        const expected = `import { Entity, serialization } from \"pailingual-odata\";\r\n`;
+        const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const actual = ts.createPrinter().printFile(transformed);
+
+        assert.equal(actual, expected);
+    });
+
+    it("add import serialization to exists 2", () => {
+        const src = `import Pailingual from \"pailingual-odata\"`
+        const expected = `import Pailingual, { serialization } from \"pailingual-odata\";\r\n`;
+        const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const actual = ts.createPrinter().printFile(transformed);
+
+        assert.equal(actual, expected);
+    })
 });
