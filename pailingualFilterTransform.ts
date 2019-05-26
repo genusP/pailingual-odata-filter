@@ -1,6 +1,6 @@
 import * as ts from "typescript";
 import * as estree from "estree";
-import { metadata as md } from "pailingual-odata";
+import { metadata as md, metadata } from "pailingual-odata";
 import { buildExpression, ParameterProvider } from "./filterExpressionBuilder";
 import { EdmEntityType } from "pailingual-odata/dist/esm/metadata";
 
@@ -138,7 +138,7 @@ function getEntityMetadataFromComment(node: ts.FunctionDeclaration | ts.ArrowFun
                     //if comment found get EntityType by full name
                     if (commmentMatches && commmentMatches.length > 0) {
                         const metadataRef = commmentMatches[0][1];
-                        return md.ApiMetadata.getEdmTypeMetadata(metadataRef, ctx.metadata.namespaces) as EdmEntityType;
+                        return ctx.metadata.getEdmTypeMetadata(metadataRef) as EdmEntityType;
                     }
                 }
                 parent = parent.parent;
@@ -297,6 +297,7 @@ function getEstreeNode(srcNode: ts.ArrowFunction | ts.FunctionDeclaration) {
     return convert(srcNode) as estree.Node;
 }
 
+var tsPrinter = ts.createPrinter();
 function getParameterProvider(node: ts.CallExpression, ctx: PailingualTransformationContext): ParameterProvider {
     if (node.arguments.length == 2) {
         const objectLiteral = node.arguments[1];
@@ -315,17 +316,32 @@ function getParameterProvider(node: ts.CallExpression, ctx: PailingualTransforma
                     return (type, opt) => {
                         const propertyAssignment = objectLiteral.properties.find((pn: any) => pn.name.text == p);
                         const initializer = ts.isPropertyAssignment(propertyAssignment)
-                            ? ts.createPrinter().printNode(ts.EmitHint.Unspecified, propertyAssignment.initializer, ctx.file)
+                            ? tsPrinter.printNode(ts.EmitHint.Unspecified, propertyAssignment.initializer, ctx.file)
                             : p;
                         var propertyType = ctx.prg.getTypeChecker().getTypeAtLocation(propertyAssignment);
+                        var metadataType = getValueMetadataType(type, node, ctx);
                         if (propertyType.symbol && propertyType.symbol.name == "Array")
-                            return `("+${initializer}.map(e=>serialization.serializeValue(e, "${type}", true))+")`;
+                            return `("+${initializer}.map(e=>serialization.serializeValue(e, ${metadataType}, true))+")`;
                         else
-                            return `"+serialization.serializeValue(${initializer}, "${type}", true)+"`;
+                            return `"+serialization.serializeValue(${initializer}, ${metadataType}, true)+"`;
                     }
                 }
             }
         }
     }
     return null;
+}
+
+function getValueMetadataType(type: md.EdmTypes | md.EdmEnumType, node: ts.CallExpression, ctx: PailingualTransformationContext) {
+    if (type instanceof md.EdmEnumType) {
+        let rootExpression = node.expression;
+        while ((rootExpression as any).expression) {
+            rootExpression = (rootExpression as any).expression;
+        }
+        const expressionString = tsPrinter.printNode(ts.EmitHint.Unspecified, rootExpression, ctx.file);
+        const enumFullName = type.getFullName();
+        return `${expressionString}.__apiMetadata.getEdmTypeMetadata(\"${enumFullName}\")`;
+    }
+    else
+        return '"'+ type.toString()+'"';
 }

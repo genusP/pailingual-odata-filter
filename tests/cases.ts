@@ -133,13 +133,13 @@ export default [
         name: "Enum",
         expression: ctx => ctx.Parents.$filter((e, p) => e.enumField == p.ef, { ef: TestEnum.Type2 }).$url(),
         expectedUrl: "/api/Parents?$filter=enumField eq Default.TestEnum'Type2'",
-        expectedTransform: "ctx.Parents.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type2, metadata.ApiMetadata.getEdmTypeMetadata(\"Default.TestEnum\",d.__apiMetadata.namespaces))+\"\").$url()"
+        expectedTransform: "ctx.Parents.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type2, ctx.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\").$url()"
     },
     {
         name: "Enum expand with filter",
         expression: ctx => ctx.Childs.$byKey(1).$expand("details", d => d.$filter((i, p) => i.enumField == p.ef, { ef: TestEnum.Type1 })).$url(),
         expectedUrl: "/api/Childs('1')?$expand=details($filter=enumField eq Default.TestEnum'Type1')",
-        expectedTransform: "ctx.Childs.$byKey(1).$expand(\"details\", d => d.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type1, metadata.ApiMetadata.getEdmTypeMetadata(\"Default.TestEnum\",d.__apiMetadata.namespaces))+\"\"))"
+        expectedTransform: "ctx.Childs.$byKey(1).$expand(\"details\", d => d.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type1, d.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\")).$url()"
     },
     {
         name: "Any",
