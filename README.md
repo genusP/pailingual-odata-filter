@@ -43,7 +43,8 @@ You can use transform with awesome-typescript-loader or ts-loader
 
 ```ts
 //webpack.config.js
-const pailingualFilterTransform = require("pailingual-odata-filter/pailingualFilterTransform");
+const PailingualFilterTransform = require("pailingual-odata-filter/pailingualFilterTransform").default;
+const transform = new PailingualFilterTransform(apiMetdata);
 ....
 rules: [
       {
@@ -51,8 +52,8 @@ rules: [
         loader: 'awesome-typescript-loader',
          options: {
             getCustomTransformers: program => ({
-                before: argv.mode !== "production"
-                  ? [ pailingualFilterTransform(program) ]
+                before: argv.mode === "production"
+                  ? [ transform.createTransform(program) ]
                   : []
             })
         }
@@ -60,6 +61,10 @@ rules: [
       }
     ]
 ...
+//For notify when transform filed
+plugins:[
+	trsnsform.notTransfomedError()
+]
 
 //app.ts
 import Pailingual from "pailingual-odata";

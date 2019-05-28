@@ -36,7 +36,7 @@ function $filter(this: CollectionSource, base: (expr: string) => string, expr: s
 type FilterExpr = { func: Function, params?: object };
 
 // override process filter parameter in Query
-function processParametr(this: Query, base: (n: string, v: any, o: Options) => string, name: string, value: any, opt: Options): string {
+function processParameter(this: Query, base: (n: string, v: any, o: Options) => string, name: string, value: any, opt: Options): string {
     if (name == "filter")
         value = value.map((v: any) => filterToString.apply(this, [v, opt]));
     return base(name, value, opt);
@@ -55,7 +55,7 @@ export default {
         setParser(f => parse(f, { preserveParens:true }) as any);
         return {
             collectionSourceFn: {$filter},
-            queryFn: { processParametr }
+            queryFn: { processParameter }
         }
     }
 }
