@@ -19,6 +19,10 @@
     "pailingual-odata": "1.1.0-beta.1",
     "typescript": "^3.2.1"
   },
+  "files": [
+    "*.js",
+    "*.ts"
+  ],
   "devDependencies": {
     "@types/chai": "^4.1.7",
     "@types/mocha": "^5.2.0",

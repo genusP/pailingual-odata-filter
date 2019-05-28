@@ -4,20 +4,23 @@ import { metadata as md, metadata } from "pailingual-odata";
 import { buildExpression, ParameterProvider } from "./filterExpressionBuilder";
 import { EdmEntityType } from "pailingual-odata/dist/esm/metadata";
 
-export default function (metadata: md.ApiMetadata) {
+export default function (metadata: md.ApiMetadata, notConvertedCallback?: NotConvertedCallback) {
     return (prg: ts.Program): ts.TransformerFactory<ts.SourceFile> =>{
         return (transformationContext: ts.TransformationContext) => {
-            return (file: ts.SourceFile) => visitNodeAndChildren(file, { prg, metadata, transformationContext, file }) as any;
+            return (file: ts.SourceFile) => visitNodeAndChildren(file, { prg, metadata, transformationContext, file, notConvertedCallback }) as any;
         }
     }
 }
+
+type NotConvertedCallback = () => void
 
 type PailingualTransformationContext = {
     file: ts.SourceFile,
     needSerializeImportDeclaration?: boolean,
     prg: ts.Program,
     metadata: md.ApiMetadata,
-    transformationContext: ts.TransformationContext
+    transformationContext: ts.TransformationContext,
+    notConvertedCallback: NotConvertedCallback | undefined
 };
 
 function visitNodeAndChildren(node: ts.Node, ctx: PailingualTransformationContext): ts.Node {
@@ -28,42 +31,61 @@ function visitNodeAndChildren(node: ts.Node, ctx: PailingualTransformationContex
 export function transformExprToStr(node: ts.Node, ctx: PailingualTransformationContext): ts.Node {
     if (ts.isCallExpression(node)
         && node.arguments.length > 0)
-    {
-        const callExp: any = node.expression;
-        const firstArg = node.arguments[0];
-        if (callExp.name
-            && callExp.name.text == "$filter"
-            && ts.isArrowFunction(firstArg) || ts.isFunctionDeclaration(firstArg)
-        ) {
-            const entityType = getEntityMetadataFromComment(firstArg, ctx)
+    {        
+        const filterExpression = getFilterExpression(node, ctx);
+        if (filterExpression) {
+            const entityType = getEntityMetadataFromComment(filterExpression, ctx)
                 || getEntityMetadataByApiContext(node.expression, ctx);
+            const calleName = (node.expression as any).name && (node.expression as any).name.text;
             if (entityType) {
-                const estreeNode = getEstreeNode(firstArg);
-                let parameterProvider: ParameterProvider = getParameterProvider(node, ctx)
-                var expr = buildExpression(estreeNode, parameterProvider, entityType, {});
+                const estreeNode = getEstreeNode(filterExpression);
+                const parameterProvider: ParameterProvider = getParameterProvider(node, ctx)
+                const expr = buildExpression(estreeNode, parameterProvider, entityType, {});
+                const exprNode = ts.createIdentifier('"' + expr + '"');
+
+
                 return ts.updateCall(
                     node,
                     node.expression,
                     node.typeArguments,
-                    [ts.createIdentifier('"' + expr + '"')]
+                    calleName == "$filter"
+                        ? [exprNode]
+                        : node.arguments.map(n => n == filterExpression ? exprNode : n)
                 );
             }
             else {
-                var diagnostic: ts.Diagnostic = {
-                    category: ts.DiagnosticCategory.Warning,
-                    code: 0,
-                    file: ctx.file,
-                    start: firstArg.pos,
-                    length: firstArg.end - firstArg.pos,
-                    messageText: "Unable get EntityTypeMetadata. Expression not converted!"
-                };
-                (ctx.transformationContext as any).addDiagnostic(diagnostic);
+                //ctx.notConvertedCallback
+                //    && ctx.notConvertedCallback();
+                //var diagnostic: ts.Diagnostic = {
+                //    category: ts.DiagnosticCategory.Warning,
+                //    code: 0,
+                //    file: ctx.file,
+                //    start: firstArg.pos,
+                //    length: firstArg.end - firstArg.pos,
+                //    messageText: "Unable get EntityTypeMetadata. Expression not converted!"
+                //};
+                //var diags = ctx.prg.getSemanticDiagnostics(ctx.file) as ts.Diagnostic[];
+                //diags.push(diagnostic);
+                //(ctx.transformationContext as any).addDiagnostic(diagnostic);
             }
         }
     }
     if (ts.isSourceFile(node) && ctx.needSerializeImportDeclaration == true) 
         return addImportSerialization(node)
     return node;
+}
+
+function getFilterExpression(node: ts.CallExpression, ctx: PailingualTransformationContext) {
+    const typeChecker = ctx.prg.getTypeChecker();
+    const callSignature = typeChecker.getResolvedSignature(node);
+    for (var i = 0; i < callSignature.parameters.length; i++) {
+        const parameterSymbol = callSignature.parameters[i];
+        const parameterType = typeChecker.getTypeAtLocation(parameterSymbol.valueDeclaration);
+        if (parameterType.aliasSymbol
+            && parameterType.aliasSymbol.escapedName == "FilterExpression") {
+            return node.arguments[i] as ts.ArrowFunction | ts.FunctionDeclaration;
+        }
+    }
 }
 
 var odataTypeDeclareRegExp = /\/[*\/]\s*@odata.type\s+(\S+)/
@@ -345,3 +367,4 @@ function getValueMetadataType(type: md.EdmTypes | md.EdmEnumType, node: ts.CallE
     else
         return '"'+ type.toString()+'"';
 }
+

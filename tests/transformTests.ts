@@ -41,7 +41,7 @@ describe("Transform", function ()
     function testTransform(name: string, expression: ts.ArrowFunction, expected: string) {
         it(name, () => {
             const transformFactory: ts.TransformerFactory<ts.Node> = transformationContext => {
-                const visitor = (n: ts.Node) => ts.visitEachChild(transformExprToStr(n, { prg, metadata, transformationContext, file:sf }), visitor, transformationContext)
+                const visitor = (n: ts.Node) => ts.visitEachChild(transformExprToStr(n, { prg, metadata, transformationContext, file: sf, notConvertedCallback: undefined }), visitor, transformationContext)
                 return visitor;
             };
             var { diagnostics, transformed } =ts.transform(expression.body, [transformFactory]);
@@ -54,7 +54,7 @@ describe("Transform", function ()
     it("add import serialization", () => {
         const expected = `import { serialization } from "pailingual-odata";\r\n`;
         const file = ts.createSourceFile("test.ts", "", ts.ScriptTarget.ESNext);
-        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file, notConvertedCallback: undefined });
         const actual = ts.createPrinter().printFile(transformed);
 
         assert.equal(actual, expected);
@@ -64,7 +64,7 @@ describe("Transform", function ()
         const src = `import { Entity } from \"pailingual-odata\"`
         const expected = `import { Entity, serialization } from \"pailingual-odata\";\r\n`;
         const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);
-        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file, notConvertedCallback: undefined });
         const actual = ts.createPrinter().printFile(transformed);
 
         assert.equal(actual, expected);
@@ -74,7 +74,7 @@ describe("Transform", function ()
         const src = `import Pailingual from \"pailingual-odata\"`
         const expected = `import Pailingual, { serialization } from \"pailingual-odata\";\r\n`;
         const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);
-        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file });
+        const transformed: any = transformExprToStr(file, { prg: null, metadata: null, needSerializeImportDeclaration: true, transformationContext: null, file, notConvertedCallback: undefined });
         const actual = ts.createPrinter().printFile(transformed);
 
         assert.equal(actual, expected);

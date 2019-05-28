@@ -1,5 +1,5 @@
 import { Context, Parent, TestEnum } from "./models";
-import { EntitySet } from "pailingual-odata";
+import { EntitySet, FilterExpression } from "pailingual-odata";
 
 export type TestCase = {
     name: string,
@@ -7,6 +7,7 @@ export type TestCase = {
     expectedUrl?: string,
     expectedTransform: string
 }
+function customFilterFunc<T, TParam>(expr: FilterExpression<T, TParam>, param?: TParam) { }
 export default [
     {
         name: "metadata from comment",
@@ -17,6 +18,19 @@ export default [
         name: "metadata from context",
         expression: ctx => ctx.TestEntities.$filter(e => e.id == 1),
         expectedTransform: "ctx.TestEntities.$filter(\"id eq 1\")"
+    },
+    {
+        name: "non in $filter func",
+        expression: ctx => customFilterFunc<Parent, void>(e => e.id == 1),
+        expectedTransform: "customFilterFunc<Parent, void>(\"id eq 1\")"
+    },
+    {
+        name: "non in $filter func with params",
+        expression: ctx => {
+            let p = 1;
+            customFilterFunc<Parent, { p: number }>((e, p) => e.id == p.p, { p })
+        },
+        expectedTransform: "{\r\n    let p = 1;\r\n    customFilterFunc<Parent, {\r\n        p: number;\r\n    }>(\"id eq \"+serialization.serializeValue(p, \"Edm.Int32\", true)+\"\", { p });\r\n}"
     },
     {
         name: "1",
