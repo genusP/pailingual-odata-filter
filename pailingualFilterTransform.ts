@@ -7,7 +7,7 @@ import { EdmEntityType } from "pailingual-odata/dist/esm/metadata";
 export default class PailingualFilterTransform {
     tsPrinter = ts.createPrinter();
     readonly odataTypeDeclareRegExp = /\/[*\/]\s*@odata.type\s+(\S+)/;
-    readonly diagnostics: ts.Diagnostic[] = [];
+    diagnostics: ts.Diagnostic[] = [];
 
     constructor(readonly metadata: md.ApiMetadata) { }
 
@@ -23,28 +23,19 @@ export default class PailingualFilterTransform {
     }
 
     transformExprToStr(node: ts.Node, ctx: PailingualTransformationContext): ts.Node {
-        if (ts.isCallExpression(node)
-            && node.arguments.length > 0) {
+        if (ts.isArrowFunction(node) || ts.isFunctionDeclaration(node)) {
             const filterExpression = this.getFilterExpression(node, ctx);
             if (filterExpression) {
+                const callExpression = ts.isCallExpression(node.parent) && node.parent;
                 const entityType = this.getEntityMetadataFromComment(filterExpression, ctx)
-                    || this.getEntityMetadataByApiContext(node.expression, ctx);
-                const calleName = (node.expression as any).name && (node.expression as any).name.text;
+                    || (callExpression && this.getEntityMetadataByApiContext(callExpression, ctx));
                 if (entityType) {
                     const estreeNode = this.getEstreeNode(filterExpression);
-                    const parameterProvider: ParameterProvider = this.getParameterProvider(node, ctx)
+                    const parameterProvider: ParameterProvider = callExpression && this.getParameterProvider(callExpression, ctx)
                     const expr = buildExpression(estreeNode, parameterProvider, entityType, {});
                     const exprNode = ts.createIdentifier('"' + expr + '"');
 
-
-                    return ts.updateCall(
-                        node,
-                        node.expression,
-                        node.typeArguments,
-                        calleName == "$filter"
-                            ? [exprNode]
-                            : node.arguments.map(n => n == filterExpression ? exprNode : n)
-                    );
+                    return exprNode;
                 }
                 else {
                     var diagnostic: ts.Diagnostic = {
@@ -64,16 +55,28 @@ export default class PailingualFilterTransform {
         return node;
     }
 
-    getFilterExpression(node: ts.CallExpression, ctx: PailingualTransformationContext) {
+    getFilterExpression(node: ts.ArrowFunction | ts.FunctionDeclaration, ctx: PailingualTransformationContext) {
+   
         const typeChecker = ctx.prg.getTypeChecker();
-        const callSignature = typeChecker.getResolvedSignature(node);
-        for (var i = 0; i < callSignature.parameters.length; i++) {
-            const parameterSymbol = callSignature.parameters[i];
-            const parameterType = typeChecker.getTypeAtLocation(parameterSymbol.valueDeclaration);
-            if (parameterType.aliasSymbol
-                && parameterType.aliasSymbol.escapedName == "FilterExpression") {
-                return node.arguments[i] as ts.ArrowFunction | ts.FunctionDeclaration;
-            }
+        let parameterType: ts.Type = null;
+
+        switch (node.parent.kind) { 
+            case ts.SyntaxKind.CallExpression: //parameter
+                const callNode = node.parent as ts.CallExpression;
+                const callSignature = typeChecker.getResolvedSignature(callNode);
+                const parameterSymbol = callSignature.parameters[callNode.arguments.indexOf(node as ts.Expression)];
+                parameterType = typeChecker.getTypeAtLocation(parameterSymbol.valueDeclaration);
+                break;
+            case ts.SyntaxKind.BinaryExpression: //assign to variable
+                parameterType = typeChecker.getTypeAtLocation((node.parent as ts.BinaryExpression).left);
+                break;
+            default:
+                parameterType = typeChecker.getTypeAtLocation(node.parent);
+        }
+        if (parameterType
+            && parameterType.aliasSymbol
+            && parameterType.aliasSymbol.escapedName == "FilterExpression") {
+            return node;
         }
     }
 

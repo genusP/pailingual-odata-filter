@@ -25,6 +25,15 @@ export default [
         expectedTransform: "customFilterFunc<Parent, void>(\"id eq 1\")"
     },
     {
+        name: "non in $filter ignore where expr as var",
+        expression: ctx => {
+            let exp: FilterExpression<Parent, void> = e => e.id == 1;
+            exp = e => e.boolField == true;
+            customFilterFunc(exp)
+        },
+        expectedTransform: "{\r\n    let exp: FilterExpression<Parent, void> = \"id eq 1\";\r\n    exp = \"boolField eq true\";\r\n    customFilterFunc(exp);\r\n}"
+    },
+    {
         name: "non in $filter func with params",
         expression: ctx => {
             let p = 1;
@@ -126,7 +135,7 @@ export default [
         name: "Parameters",
         expression: ctx => { let id = 1; return ctx.Parents.$filter((e, p) => e.id == p.id, { id }).$url();},
         expectedUrl: "/api/Parents?$filter=id eq 1",
-        expectedTransform: "{\r\n    let id = 1;\r\n    return ctx.Parents.$filter(\"id eq \"+serialization.serializeValue(id, \"Edm.Int32\", true)+\"\").$url();\r\n}"
+        expectedTransform: "{\r\n    let id = 1;\r\n    return ctx.Parents.$filter(\"id eq \"+serialization.serializeValue(id, \"Edm.Int32\", true)+\"\", { id }).$url();\r\n}"
     },
     {
         name: "Parameters bool",
@@ -135,7 +144,7 @@ export default [
         return ctx.Parents.$filter((e, p) => e.boolField == p.v, { v }).$url();
         },
         expectedUrl: "/api/Parents?$filter=boolField eq false",
-        expectedTransform: "{\r\n    let v = false;\r\n    return ctx.Parents.$filter(\"boolField eq \"+serialization.serializeValue(v, \"Edm.Boolean\", true)+\"\").$url();\r\n}"
+        expectedTransform: "{\r\n    let v = false;\r\n    return ctx.Parents.$filter(\"boolField eq \"+serialization.serializeValue(v, \"Edm.Boolean\", true)+\"\", { v }).$url();\r\n}"
     },
     {
         name: "Func concat",
@@ -147,13 +156,13 @@ export default [
         name: "Enum",
         expression: ctx => ctx.Parents.$filter((e, p) => e.enumField == p.ef, { ef: TestEnum.Type2 }).$url(),
         expectedUrl: "/api/Parents?$filter=enumField eq Default.TestEnum'Type2'",
-        expectedTransform: "ctx.Parents.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type2, ctx.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\").$url()"
+        expectedTransform: "ctx.Parents.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type2, ctx.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\", { ef: TestEnum.Type2 }).$url()"
     },
     {
         name: "Enum expand with filter",
         expression: ctx => ctx.Childs.$byKey(1).$expand("details", d => d.$filter((i, p) => i.enumField == p.ef, { ef: TestEnum.Type1 })).$url(),
         expectedUrl: "/api/Childs('1')?$expand=details($filter=enumField eq Default.TestEnum'Type1')",
-        expectedTransform: "ctx.Childs.$byKey(1).$expand(\"details\", d => d.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type1, d.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\")).$url()"
+        expectedTransform: "ctx.Childs.$byKey(1).$expand(\"details\", d => d.$filter(\"enumField eq \"+serialization.serializeValue(TestEnum.Type1, d.__apiMetadata.getEdmTypeMetadata(\"Default.TestEnum\"), true)+\"\", { ef: TestEnum.Type1 })).$url()"
     },
     {
         name: "Any",
@@ -165,7 +174,7 @@ export default [
         name: "All",
         expression: ctx => ctx.Parents.$filter((e, p, f) => e.childs.any(d => f.contains(d.childField, p.v)), { v: "a" }).$url(),
         expectedUrl: "/api/Parents?$filter=childs/any(d:contains(d/childField,'a'))",
-        expectedTransform: "ctx.Parents.$filter(\"childs/any(d:contains(d/childField,\"+serialization.serializeValue(\"a\", \"Edm.String\", true)+\"))\").$url()"
+        expectedTransform: "ctx.Parents.$filter(\"childs/any(d:contains(d/childField,\"+serialization.serializeValue(\"a\", \"Edm.String\", true)+\"))\", { v: \"a\" }).$url()"
     },
     {
         name: "Single-value navigation property",
@@ -214,7 +223,7 @@ export default [
             return ctx.Parents.$filter((e, p) => e.strField in p.list, { list }).$url()
         },
         expectedUrl: "/api/Parents?$filter=strField in ('a','b','c')",
-        expectedTransform: "{\r\n    const list = [\"a\", \"b\", \"c\"];\r\n    return ctx.Parents.$filter(\"strField in (\"+list.map(e=>serialization.serializeValue(e, \"Edm.String\", true))+\")\").$url();\r\n}"
+        expectedTransform: "{\r\n    const list = [\"a\", \"b\", \"c\"];\r\n    return ctx.Parents.$filter(\"strField in (\"+list.map(e=>serialization.serializeValue(e, \"Edm.String\", true))+\")\", { list }).$url();\r\n}"
     },
     {
         name: "in operator with param 2",
@@ -223,6 +232,6 @@ export default [
             return ctx.Parents.$filter((e, p) => e.strField in ["a", "b", p.element], { element }).$url();
         },
         expectedUrl: "/api/Parents?$filter=strField in ('a','b','c')",
-        expectedTransform: "{\r\n    const element = \"c\";\r\n    return ctx.Parents.$filter(\"strField in ('a','b',\"+serialization.serializeValue(element, \"Edm.String\", true)+\")\").$url();\r\n}"
+        expectedTransform: "{\r\n    const element = \"c\";\r\n    return ctx.Parents.$filter(\"strField in ('a','b',\"+serialization.serializeValue(element, \"Edm.String\", true)+\")\", { element }).$url();\r\n}"
     }    
 ] as TestCase[]

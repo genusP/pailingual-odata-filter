@@ -41,14 +41,15 @@ describe("Transform", function ()
 
     function testTransform(name: string, expression: ts.ArrowFunction, expected: string) {
         it(name, () => {
+            transform.diagnostics = [];
             const transformFactory: ts.TransformerFactory<ts.Node> = transformationContext => {
                 const visitor = (n: ts.Node) => ts.visitEachChild(transform.transformExprToStr(n, { prg, transformationContext, file: sf}), visitor, transformationContext)
                 return visitor;
             };
-            var { diagnostics, transformed } =ts.transform(expression.body, [transformFactory]);
+            var { transformed } =ts.transform(expression.body, [transformFactory]);
             const actual = ts.createPrinter().printNode(ts.EmitHint.Unspecified, transformed[0], sf);
             assert.equal(actual, expected);
-            assert.isEmpty(diagnostics, "Transform diagnostics not empty");
+            assert.isEmpty( transform.diagnostics, "Transform diagnostics not empty");
         })
     }
 
