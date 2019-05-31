@@ -23,7 +23,8 @@ export default class PailingualFilterTransform {
     }
 
     transformExprToStr(node: ts.Node, ctx: PailingualTransformationContext): ts.Node {
-        if (ts.isArrowFunction(node) || ts.isFunctionDeclaration(node)) {
+        if (ts.isArrowFunction(node) || ts.isFunctionDeclaration(node))
+        {
             const filterExpression = this.getFilterExpression(node, ctx);
             if (filterExpression) {
                 const callExpression = ts.isCallExpression(node.parent) && node.parent;
@@ -56,27 +57,31 @@ export default class PailingualFilterTransform {
     }
 
     getFilterExpression(node: ts.ArrowFunction | ts.FunctionDeclaration, ctx: PailingualTransformationContext) {
-   
-        const typeChecker = ctx.prg.getTypeChecker();
-        let parameterType: ts.Type = null;
+        try {
+            const typeChecker = ctx.prg.getTypeChecker();
+            let parameterType: ts.Type = null;
 
-        switch (node.parent.kind) { 
-            case ts.SyntaxKind.CallExpression: //parameter
-                const callNode = node.parent as ts.CallExpression;
-                const callSignature = typeChecker.getResolvedSignature(callNode);
-                const parameterSymbol = callSignature.parameters[callNode.arguments.indexOf(node as ts.Expression)];
-                parameterType = typeChecker.getTypeAtLocation(parameterSymbol.valueDeclaration);
-                break;
-            case ts.SyntaxKind.BinaryExpression: //assign to variable
-                parameterType = typeChecker.getTypeAtLocation((node.parent as ts.BinaryExpression).left);
-                break;
-            default:
-                parameterType = typeChecker.getTypeAtLocation(node.parent);
+            switch (node.parent.kind) {
+                case ts.SyntaxKind.CallExpression: //parameter
+                    const callNode = node.parent as ts.CallExpression;
+                    const callSignature = typeChecker.getResolvedSignature(callNode);
+                    const parameterSymbol = callSignature.parameters[callNode.arguments.indexOf(node as ts.Expression)];
+                    parameterType = typeChecker.getTypeAtLocation(parameterSymbol.valueDeclaration);
+                    break;
+                case ts.SyntaxKind.BinaryExpression: //assign to variable
+                    parameterType = typeChecker.getTypeAtLocation((node.parent as ts.BinaryExpression).left);
+                    break;
+                default:
+                    parameterType = typeChecker.getTypeAtLocation(node.parent);
+            }
+            if (parameterType
+                && parameterType.aliasSymbol
+                && parameterType.aliasSymbol.escapedName == "FilterExpression") {
+                return node;
+            }
         }
-        if (parameterType
-            && parameterType.aliasSymbol
-            && parameterType.aliasSymbol.escapedName == "FilterExpression") {
-            return node;
+        catch {
+
         }
     }
 
