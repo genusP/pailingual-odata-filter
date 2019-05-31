@@ -68,11 +68,10 @@ plugins:[
 
 //app.ts
 import Pailingual from "pailingual-odata";
-import FilterPlugin from "pailingual-odata-filter";
 
 //No need register plugin in production mode, all expression transforms to string
 if (process.env.NODE_ENV !== "production")
-    Pailingual.use(FilterPlugin);
+    Pailingual.use(require("pailingual-odata-filter").default);
 
 ```
 

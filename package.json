@@ -1,6 +1,6 @@
 {
   "name": "pailingual-odata-filter",
-  "version": "1.1.0-beta.4",
+  "version": "1.1.0",
   "description": "Plugin for pailingual-odata that implements support arrow function in $filter query option",
   "main": "index.js",
   "types": "index.d.ts",
@@ -30,10 +30,13 @@
     "@types/node": "^8.0.14",
     "@types/webpack": "^4.4.32",
     "chai": "^4.2.0",
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "pailingual-odata": "^1.1.0",
+    "typescript": "^3.1.6"
   },
   "scripts": {
     "test": "mocha ./tests",
-    "tsc": "tsc"
+    "build": "tsc --build",
+    "clean": "tsc --clean"
   }
 }
