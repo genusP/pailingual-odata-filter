@@ -1,7 +1,7 @@
 ﻿import { assert } from "chai";
 (global as any).window = {};
 import filterPlugin from ".."
-import Pailingual from "pailingual-odata";
+import { Pailingual, csdl } from "pailingual-odata";
 import { IContext, metadata, TestEnum} from "./models";
 import { ODataFunctions, ODataFunctionsMetadata } from "../oDataQueryFuncs";
 import cases from "./cases";
@@ -10,7 +10,7 @@ describe("Filter", () => {
 
     //TESTS FROM cases.ts
     Pailingual.use(filterPlugin)
-    const context = Pailingual.createApiContext<IContext>(metadata);
+    const context = Pailingual.createApiContext<IContext>(metadata as csdl.MetadataDocument);
     for (let testCase of cases) {
         if (Object.getOwnPropertyNames(testCase).indexOf("expectedUrl") >-1) {
 

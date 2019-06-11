@@ -1,6 +1,6 @@
-import { EntityArray, metadata  } from "pailingual-odata";
+import { EntityArray, csdl  } from "pailingual-odata";
 
-var EdmTypes = metadata.EdmTypes;
+var PrimitiveType = csdl.PrimitiveType;
 //OData protocol built-in functions
 export interface ODataFunctions {
     concat<T extends string | EntityArray<any>>(left: T, right: T): T;
@@ -37,50 +37,50 @@ export interface ODataFunctions {
     round(value: number): number;
 }
 
-export type QueryFuncMetadata = { return: metadata.EdmTypes, arguments: metadata.EdmTypes[] };
+export type QueryFuncMetadata = { return: csdl.PrimitiveType, arguments: csdl.PrimitiveType[] };
 
 export var ODataFunctionsMetadata: Record<string, QueryFuncMetadata[]> = {
-    "concat": [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "contains": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "endswith": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "indexof": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "length": [{ return: EdmTypes.Int32, arguments: [EdmTypes.String] }],
-    "startswith": [{ return: EdmTypes.Boolean, arguments: [EdmTypes.String, EdmTypes.String] }],
-    "substring": [{ return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32] },
-    { return: EdmTypes.String, arguments: [EdmTypes.String, EdmTypes.Int32, EdmTypes.Int32] }],
+    "concat": [{ return: PrimitiveType.String, arguments: [PrimitiveType.String, PrimitiveType.String] }],
+    "contains": [{ return: PrimitiveType.Boolean, arguments: [PrimitiveType.String, PrimitiveType.String] }],
+    "endswith": [{ return: PrimitiveType.Boolean, arguments: [PrimitiveType.String, PrimitiveType.String] }],
+    "indexof": [{ return: PrimitiveType.Boolean, arguments: [PrimitiveType.String, PrimitiveType.String] }],
+    "length": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.String] }],
+    "startswith": [{ return: PrimitiveType.Boolean, arguments: [PrimitiveType.String, PrimitiveType.String] }],
+    "substring": [{ return: PrimitiveType.String, arguments: [PrimitiveType.String, PrimitiveType.Int32] },
+    { return: PrimitiveType.String, arguments: [PrimitiveType.String, PrimitiveType.Int32, PrimitiveType.Int32] }],
 
     //String functions
-    "tolower": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
-    "toupper": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
-    "trim": [{ return: EdmTypes.String, arguments: [EdmTypes.String] }],
+    "tolower": [{ return: PrimitiveType.String, arguments: [PrimitiveType.String] }],
+    "toupper": [{ return: PrimitiveType.String, arguments: [PrimitiveType.String] }],
+    "trim": [{ return: PrimitiveType.String, arguments: [PrimitiveType.String] }],
 
     //Date functions
-    "date": [{ return: EdmTypes.Date, arguments: [EdmTypes.DateTimeOffset] }],
-    "day": [{ return: EdmTypes.Int32, arguments: [EdmTypes.Date] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] }],
-    "fractionalseconds": [{ return: EdmTypes.Decimal, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Decimal, arguments: [EdmTypes.TimeOfDay] }],
-    "hour": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay] }],
-    "maxdatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "mindatetime": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "minute": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay] }],
-    "month": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay] }],
-    "now": [{ return: EdmTypes.DateTimeOffset, arguments: [] }],
-    "second": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay] }],
-    "time": [{ return: EdmTypes.TimeOfDay, arguments: [EdmTypes.DateTimeOffset] }],
-    "totaloffsetminutes": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] }],
-    "year": [{ return: EdmTypes.Int32, arguments: [EdmTypes.DateTimeOffset] },
-    { return: EdmTypes.Int32, arguments: [EdmTypes.TimeOfDay] }],
+    "date": [{ return: PrimitiveType.Date, arguments: [PrimitiveType.DateTimeOffset] }],
+    "day": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.Date] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] }],
+    "fractionalseconds": [{ return: PrimitiveType.Decimal, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Decimal, arguments: [PrimitiveType.TimeOfDay] }],
+    "hour": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.TimeOfDay] }],
+    "maxdatetime": [{ return: PrimitiveType.DateTimeOffset, arguments: [] }],
+    "mindatetime": [{ return: PrimitiveType.DateTimeOffset, arguments: [] }],
+    "minute": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.TimeOfDay] }],
+    "month": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.TimeOfDay] }],
+    "now": [{ return: PrimitiveType.DateTimeOffset, arguments: [] }],
+    "second": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.TimeOfDay] }],
+    "time": [{ return: PrimitiveType.TimeOfDay, arguments: [PrimitiveType.DateTimeOffset] }],
+    "totaloffsetminutes": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] }],
+    "year": [{ return: PrimitiveType.Int32, arguments: [PrimitiveType.DateTimeOffset] },
+    { return: PrimitiveType.Int32, arguments: [PrimitiveType.TimeOfDay] }],
 
     //Arithmetic Functions
-    "celling": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-    { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
-    "floor": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-    { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }],
-    "round": [{ return: EdmTypes.Double, arguments: [EdmTypes.Double] },
-    { return: EdmTypes.Decimal, arguments: [EdmTypes.Decimal] }]
+    "celling": [{ return: PrimitiveType.Double, arguments: [PrimitiveType.Double] },
+    { return: PrimitiveType.Decimal, arguments: [PrimitiveType.Decimal] }],
+    "floor": [{ return: PrimitiveType.Double, arguments: [PrimitiveType.Double] },
+    { return: PrimitiveType.Decimal, arguments: [PrimitiveType.Decimal] }],
+    "round": [{ return: PrimitiveType.Double, arguments: [PrimitiveType.Double] },
+    { return: PrimitiveType.Decimal, arguments: [PrimitiveType.Decimal] }]
 };

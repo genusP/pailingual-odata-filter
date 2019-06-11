@@ -1,15 +1,14 @@
 import * as ts from "typescript";
 import * as estree from "estree";
-import { metadata as md } from "pailingual-odata";
 import { buildExpression, ParameterProvider } from "./filterExpressionBuilder";
-import { EdmEntityType } from "pailingual-odata/dist/esm/metadata";
+import { csdl } from "pailingual-odata";
 
 export default class PailingualFilterTransform {
     tsPrinter = ts.createPrinter();
     readonly odataTypeDeclareRegExp = /\/[*\/]\s*@odata.type\s+(\S+)/;
     diagnostics: ts.Diagnostic[] = [];
 
-    constructor(readonly metadata: md.ApiMetadata) { }
+    constructor(readonly metadata: csdl.MetadataDocument) { }
 
     createTransform(prg: ts.Program): ts.TransformerFactory<ts.SourceFile> {
         return (transformationContext: ts.TransformationContext) => {
@@ -155,7 +154,7 @@ export default class PailingualFilterTransform {
                         //if comment found get EntityType by full name
                         if (commmentMatches && commmentMatches.length > 0) {
                             const metadataRef = commmentMatches[0][1];
-                            return this.metadata.getEdmTypeMetadata(metadataRef) as EdmEntityType;
+                            return csdl.getItemByName(metadataRef, this.metadata) as csdl.EntityType;
                         }
                     }
                     parent = parent.parent;
@@ -167,7 +166,7 @@ export default class PailingualFilterTransform {
 
     getEntityMetadataByApiContext(node: ts.Node, ctx: PailingualTransformationContext) {
         const typeChecker = ctx.prg.getTypeChecker();
-        let entityType: md.EdmEntityType;
+        let entityType: csdl.EntityType;
         try {
             const visitor = node2 => {
                 var type = typeChecker.getTypeAtLocation(node2);
@@ -182,11 +181,15 @@ export default class PailingualFilterTransform {
                 if (ts.isPropertyAccessExpression(node2)) {
                     const propertyName = node2.name.getText();
                     if (entityType) {
-                        const typeRef = entityType.navProperties[propertyName] || entityType.properties[propertyName]
-                        entityType = typeRef!.type as md.EdmEntityType
+                        const typeRef = csdl.getProperty(propertyName, entityType)
+                        entityType = csdl.getType(typeRef.$Type, entityType) as csdl.EntityType
                     }
-                    else
-                        entityType = this.metadata.entitySets[propertyName] || this.metadata.singletons[propertyName];
+                    else {
+                        const container = csdl.getEntityContainer(this.metadata);
+                        const entitySetOrSingleton = container && container[propertyName];
+                        if (csdl.isEntitySet(entitySetOrSingleton) || csdl.isSingleton(entitySetOrSingleton))
+                            entityType = entitySetOrSingleton && csdl.getType(entitySetOrSingleton.$Type, container) as csdl.EntityType;
+                    }
                 }
                 return visited;
             };
@@ -318,13 +321,13 @@ export default class PailingualFilterTransform {
         if (node.arguments.length == 2) {
             const objectLiteral = node.arguments[1];
             if (ts.isObjectLiteralExpression(objectLiteral)) {
-                const edmType = new md.EdmEntityType(
-                    "Params",
-                    objectLiteral.properties.reduce<Record<string, md.EdmTypeReference>>((p, c: any) => {
-                        p[c.name.text] = new md.EdmTypeReference(md.EdmTypes.Unknown);
+                const edmType =
+                    objectLiteral.properties.reduce<csdl.ComplexType>((p, c: any) => {
+                        p[c.name.text] = { $Type: csdl.PrimitiveType.Untyped };
                         return p;
-                    }, {})
-                );
+                    },
+                        { $Kind: csdl.CsdlKind.ComplexType }
+                    );
                 const _this = this;
                 return {
                     type: edmType,
@@ -348,14 +351,14 @@ export default class PailingualFilterTransform {
         return null;
     }
 
-    getValueMetadataType(type: md.EdmTypes | md.EdmEnumType, node: ts.CallExpression, ctx: PailingualTransformationContext) {
-        if (type instanceof md.EdmEnumType) {
+    getValueMetadataType(type: csdl.PrimitiveType | csdl.EnumType, node: ts.CallExpression, ctx: PailingualTransformationContext) {
+        if (csdl.isEnumType(type)) {
             let rootExpression = node.expression;
             while ((rootExpression as any).expression) {
                 rootExpression = (rootExpression as any).expression;
             }
             const expressionString = this.tsPrinter.printNode(ts.EmitHint.Unspecified, rootExpression, ctx.file);
-            const enumFullName = type.getFullName();
+            const enumFullName = csdl.getName(type, "full");
             return `${expressionString}.__apiMetadata.getEdmTypeMetadata(\"${enumFullName}\")`;
         }
         else

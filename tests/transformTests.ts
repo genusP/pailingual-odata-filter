@@ -4,6 +4,7 @@ import * as path from "path";
 import { PailingualFilterTransform } from "../pailingualFilterTransform";
 import { metadata } from "./models";
 import { TestCase } from "./cases";
+import { csdl } from "pailingual-odata";
 
 
 describe("Transform", function ()
@@ -18,7 +19,7 @@ describe("Transform", function ()
     const compilerHost = ts.createCompilerHost(compilerOptions)
     const prg = ts.createProgram(["index.ts", testCasesFilePath], compilerOptions, compilerHost);
     const sf = prg.getSourceFile(testCasesFilePath);
-    const transform = new PailingualFilterTransform(metadata);
+    const transform = new PailingualFilterTransform(metadata as csdl.MetadataDocument);
     
     const casesExport = sf.statements.find(s => ts.isExportAssignment(s)) as ts.ExportAssignment;
     const casesArray = (casesExport.expression as any).expression as ts.ArrayLiteralExpression;
@@ -48,8 +49,8 @@ describe("Transform", function ()
             };
             var { transformed } =ts.transform(expression.body, [transformFactory]);
             const actual = ts.createPrinter().printNode(ts.EmitHint.Unspecified, transformed[0], sf);
-            assert.equal(actual, expected);
             assert.isEmpty( transform.diagnostics, "Transform diagnostics not empty");
+            assert.equal(actual, expected);
         })
     }
 

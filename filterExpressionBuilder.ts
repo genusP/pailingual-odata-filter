@@ -1,4 +1,4 @@
-import { metadata, Options, serialization } from "pailingual-odata";
+import { csdl, Options, serialization } from "pailingual-odata";
 import * as estree from "estree";
 import { ODataFunctionsMetadata, QueryFuncMetadata } from "./oDataQueryFuncs";
 
@@ -16,10 +16,10 @@ export function setParser(parser: ParserDelegate) {
     parse = parser;
 }
 
-export type ParameterProvider = { type: metadata.EdmEntityType, getValue: (p: string) => ValueProvider };
-export type ValueProvider = (type: metadata.EdmTypes | metadata.EdmEnumType, options: Options)=>any
+export type ParameterProvider = { type: csdl.ComplexType | csdl.EntityType, getValue: (p: string) => ValueProvider };
+export type ValueProvider = (type: csdl.PrimitiveType | csdl.EnumType, options: Options) => any
 
-export function buildExpression(funcOrNodes: Function | estree.Node, params: object | ParameterProvider, metadata: metadata.EdmEntityType, options: Options): string {
+export function buildExpression(funcOrNodes: Function | estree.Node, params: object | ParameterProvider, metadata: csdl.EntityType, options: Options): string {
     const nodes = typeof funcOrNodes === "function"
         ? getNodes(funcOrNodes)
         : funcOrNodes;
@@ -55,20 +55,20 @@ function getParamsMetadata(params: Record<string, any>): ParameterProvider {
     const definedProps = Object.getOwnPropertyNames(params || {});
     if (definedProps.length == 2 && definedProps.indexOf("type") > -1 && definedProps.indexOf("getValue"))
         return params as ParameterProvider
-    let properties: Record<string, metadata.EdmTypeReference> = {};
+    let paramsType: csdl.ComplexType = { $Kind: csdl.CsdlKind.ComplexType };
     for (let prop of definedProps) {
-        properties[prop] = new metadata.EdmTypeReference(metadata.EdmTypes.Unknown);
+        paramsType[prop] = { $Kind: csdl.CsdlKind.Property, $Type: csdl.PrimitiveType.Untyped };
     }
     return {
-        type: new metadata.EdmEntityType("Params", properties),
+        type: paramsType,
         getValue(p) {
             const val = params[p];
             return (curType, options) => {
                 var res: string | null = null;
                 if (Array.isArray(val))
-                    res = `(${val.map(v => serialization.serializeValue(v, curType as metadata.EdmTypes, true, options)).join(',')})`
+                    res = `(${val.map(v => serialization.serializeValue(v, curType, true, options)).join(',')})`
                 else
-                    res = serialization.serializeValue(val, curType as metadata.EdmTypes, true, options);
+                    res = serialization.serializeValue(val, curType, true, options);
                 return res || this.valueProvider.toString() as string;
             }
         }
@@ -78,25 +78,15 @@ function getParamsMetadata(params: Record<string, any>): ParameterProvider {
 class Expression {
     constructor(
         public readonly expression: string,
-        public readonly type: metadata.EdmTypeReference | undefined,
+        public readonly type: csdl.EntityType | csdl.ComplexType | csdl.PrimitiveType | csdl.EnumType | undefined,
         private readonly valueProvider?: ValueProvider,
     ) { }
 
-    toString(type: metadata.EdmTypes | metadata.EdmEntityType | metadata.EdmEnumType | metadata.EdmTypeReference | undefined, options: Options): string {
+    toString(type: csdl.PrimitiveType | csdl.EntityType | csdl.EnumType | csdl.ComplexType | undefined, options: Options): string {
         if (this.valueProvider != null) {
-            let curType = type instanceof metadata.EdmTypeReference
-                ? type.type
-                : type || (this.type && this.type.type);
-            if (!(curType instanceof metadata.EdmEntityType))
+            let curType = type || this.type;
+            if (csdl.isEnumType(curType) || csdl.isPrimitiveType(curType))
                 return this.valueProvider(curType, options);
-            /*var res: string | null = null;
-            if (curType) {
-                if (Array.isArray(this.valueProvider))
-                    res = `(${this.valueProvider.map(v => serialization.serializeValue(v, curType as metadata.EdmTypes, true, options)).join(',')})`
-                else
-                    res = serialization.serializeValue(this.valueProvider, curType as metadata.EdmTypes, true, options);
-            }
-            return res || this.valueProvider.toString() as string;*/
         }
         return this.expression;
     }
@@ -112,28 +102,28 @@ class Visitor {
     ) {
 
     }
-    transform(node: estree.Expression | estree.Node, metadata?: metadata.EdmEntityType): Expression {
+    transform(node: estree.Expression | estree.Node, metadata?: csdl.EntityType | csdl.ComplexType): Expression {
         const transformName = "transform" + node.type;
         if (transformName in this)
             return (this as any)[transformName](node, metadata);
         throw new Error(`Not supported node type '${node.type}'`);
     }
 
-    transformProgram(node: estree.Program, metadata: metadata.EdmEntityType): Expression {
+    transformProgram(node: estree.Program, metadata: csdl.EntityType): Expression {
         if (node.body.length > 1)
             throw new Error("Multiple body nodes not supported");
         return this.transform(node.body[0], metadata);
     }
 
-    transformExpressionStatement(node: estree.ExpressionStatement, metadata: metadata.EdmEntityType): Expression {
+    transformExpressionStatement(node: estree.ExpressionStatement, metadata: csdl.EntityType): Expression {
         return this.transform(node.expression, metadata);
     }
 
-    transformArrowFunctionExpression(node: estree.ArrowFunctionExpression, metadata: metadata.EdmEntityType): Expression {
+    transformArrowFunctionExpression(node: estree.ArrowFunctionExpression, metadata: csdl.EntityType): Expression {
         return this.transformFunctionDeclaration(node, metadata);
     }
 
-    transformFunctionDeclaration(node: estree.FunctionDeclaration | estree.ArrowFunctionExpression, metadata: metadata.EdmEntityType): Expression {
+    transformFunctionDeclaration(node: estree.FunctionDeclaration | estree.ArrowFunctionExpression, metadata: csdl.EntityType): Expression {
         let pos = 0;
         for (let p of node.params) {
             const argName = (p as estree.Identifier).name;
@@ -148,14 +138,14 @@ class Visitor {
         return exp;
     }
 
-    transformBlockStatement(node: estree.BlockStatement, metadata: metadata.EdmEntityType): Expression{
+    transformBlockStatement(node: estree.BlockStatement, metadata: csdl.EntityType): Expression{
         const body = node.body.filter(n => n.type != "EmptyStatement");
         if (body.length > 1)
             throw new Error("Multiple statement functions not supported");
         return this.transform(body[0], metadata);
     }
 
-    transformReturnStatement(node: estree.ReturnStatement, metadata: metadata.EdmEntityType): Expression {
+    transformReturnStatement(node: estree.ReturnStatement, metadata: csdl.EntityType): Expression {
         if (node.argument)
             return this.transform(node.argument, metadata);
         throw new Error("Return statement needed");
@@ -202,13 +192,13 @@ class Visitor {
         return new Expression(`(${exp.toString(exp.type, this.options)})`, exp.type)
     }
 
-    transformMemberExpression(node: estree.MemberExpression, metadata: metadata.EdmEntityType): Expression {
+    transformMemberExpression(node: estree.MemberExpression, metadata: csdl.EntityType | csdl.ComplexType): Expression {
         let parts = new Array<string>();
         let curMetadata = metadata;
         const propertyExp = node.property as estree.Identifier;
         if (node.object.type !== "Identifier") {
             let objExpr = this.transform(node.object, metadata);
-            curMetadata = objExpr.type!.type as metadata.EdmEntityType;
+            curMetadata = objExpr.type as csdl.EntityType;
             parts.push(objExpr.expression)
         }
         else {
@@ -220,11 +210,11 @@ class Visitor {
         }
         parts.push(propertyExp.name);
         const expression = parts.join("/");
-        let propertyMetadata = curMetadata.properties[propertyExp.name]
-                            || curMetadata.navProperties[propertyExp.name];
-        if (!propertyMetadata)
+        let property = csdl.getProperty(propertyExp.name, curMetadata);
+        if (!property)
             throw new Error(`Metadata for property '${expression}' not found`);
-        return new Expression(expression, propertyMetadata, value);
+        let propType = csdl.getType(property.$Type, property)
+        return new Expression(expression, propType, value);
     }
 
     transformLiteral(node: estree.Literal): Expression {
@@ -249,7 +239,7 @@ class Visitor {
             parts.push(this.transform(node.left).toString(undefined, this.options));
         parts.push((this.operatorMap as any)[node.operator]);
         parts.push(this.transform(node.right).toString(undefined, this.options));
-        return new Expression(parts.join(" "), new metadata.EdmTypeReference(metadata.EdmTypes.Boolean));
+        return new Expression(parts.join(" "), csdl.PrimitiveType.Boolean);
     }
 
     transformCallExpression(node: estree.CallExpression): Expression
@@ -258,13 +248,13 @@ class Visitor {
             let funcName = (node.callee.property as estree.Identifier).name;
             if (lambdaFunctions.indexOf(funcName) > -1) {
                 let calleeExp = this.transform(node.callee.object);
-                if (calleeExp.type && calleeExp.type.collection) {
+                //if (calleeExp.type && calleeExp.type.collection) {
                     const lambdaExp = this.transformODataLabdaFunc(node, calleeExp.type);
                     return new Expression(
                         `${calleeExp.expression}/${funcName}(${lambdaExp.expression})`,
-                        new metadata.EdmTypeReference(metadata.EdmTypes.Boolean)
+                        csdl.PrimitiveType.Boolean
                     );
-                }
+                //}
             }
             if (node.callee.object.type == "Identifier"
                 && this.args[node.callee.object.name] == this.args[2]) {
@@ -278,10 +268,10 @@ class Visitor {
                         let isEq = true;
                         for (var i = 0; i < item.arguments.length; i++) {
                             const argExp = argsExprs[i];
-                            const argType = argExp && argExp.type && argExp.type.type;
+                            const argType = argExp && argExp.type;
                             isEq = item.arguments[i] == argType
                                 || argType == undefined
-                                || argType == metadata.EdmTypes.Unknown
+                                || argType == csdl.PrimitiveType.Untyped
                             if (!isEq) break
                         }
                         if (isEq) {
@@ -299,7 +289,7 @@ class Visitor {
                     );
                     return new Expression(
                         `${funcName}(${argStrs.join(",")})`,
-                        new metadata.EdmTypeReference(funcMetadata.return)
+                        funcMetadata.return
                     );
                 }
             }
@@ -308,12 +298,12 @@ class Visitor {
     }
 
     //parse lambda expression
-    transformODataLabdaFunc(node: estree.CallExpression, propMetadata: metadata.EdmTypeReference): Expression {
+    transformODataLabdaFunc(node: estree.CallExpression, propMetadata: csdl.ComplexType | csdl.EntityType | csdl.EnumType | csdl.PrimitiveType): Expression {
         if (node.arguments.length == 1) {
             let context: Record<string, any> = {};
             for (let arg in this.args) {
                 context[arg] = arg == "0"
-                    ? { type: propMetadata.type as metadata.EdmEntityType }
+                    ? { type: propMetadata }
                     : this.args[arg];
             }
             let visitor = new Visitor(
