@@ -107,255 +107,257 @@ export interface OpenType extends IEntityBase {
     prop4?: boolean;
 }
 
-const metadata  = {
-    $ApiRoot: "/api",
-    $Version: "4.0",
-    $EntityContainer: "Default.Container",
-    "Default": {
-        $Alias: "self",
-        "Child": {
-            $Kind: csdl.CsdlKind.EntityType,
-            $Key: ["id"],
-            id: {},
-            parentId: { $Type: "Edm.Int32" },
-            childField: {},
-            parent: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.Parent" },
-            firstDetail: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.ChildDetail", $Nullable: true },
-            details: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.ChildDetail", $Collection: true }
+export function createMetadata(version="4.0") {
+    const md= {
+        $ApiRoot: "/api",
+        $Version: version||"4.0",
+        $EntityContainer: "Default.Container",
+        "Default": {
+            $Alias: "self",
+            "Child": {
+                $Kind: csdl.CsdlKind.EntityType,
+                $Key: ["id"],
+                id: {},
+                parentId: { $Type: "Edm.Int32" },
+                childField: {},
+                parent: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.Parent" },
+                firstDetail: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.ChildDetail", $Nullable: true },
+                details: { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.ChildDetail", $Collection: true }
+            },
+            "ChildDetail": {
+                $Kind: csdl.CsdlKind.EntityType,
+                detailsId: { $Type: "Edm.Int32" },
+                childId: { $Type: "Edm.Int32" },
+                enumField: { $Type: "self.TestEnum", $Nullable: true }
+            },
+            "ComplexType": {
+                $Kind: csdl.CsdlKind.ComplexType,
+                "field": {}
+            },
+            "Container": {
+                $Kind: csdl.CsdlKind.EntityContainer,
+                "Parents": {
+                    $Kind: csdl.CsdlKind.EntitySet,
+                    $Type: "self.Parent"
+                },
+                "Childs": {
+                    $Kind: csdl.CsdlKind.EntitySet,
+                    $Type: "self.Child"
+                },
+                "OpenTypes": {
+                    $Kind: csdl.CsdlKind.EntitySet,
+                    $Type: "self.OpenType"
+                },
+                "TestEntities": {
+                    $Kind: csdl.CsdlKind.EntitySet,
+                    $Type: "self.TestEntity"
+                },
+                "Singleton": {
+                    $Kind: csdl.CsdlKind.Singleton,
+                    $Type: "self.Parent"
+                },
+                "unboundFuncPrimitive": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncPrimitive"
+                },
+                "unboundFuncPrimitiveCol": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncPrimitiveCol"
+                },
+                "unboundFuncComplex": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncComplex"
+                },
+                "unboundFuncComplexCol": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncComplexCol"
+                },
+                "unboundFuncEntity": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncEntity"
+                },
+                "unboundFuncEntityCol": {
+                    $Kind: csdl.CsdlKind.FunctionImport,
+                    $Function: "self.unboundFuncEntityCol"
+                },
+                "unboundActionPrimitive": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionPrimitive"
+                },
+                "unboundActionPrimitiveCol": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionPrimitiveCol"
+                },
+                "unboundActionComplex": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionComplex"
+                },
+                "unboundActionComplexCol": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionComplexCol"
+                },
+                "unboundActionEntity": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionEntity"
+                },
+                "unboundActionEntityCol": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundActionEntityCol"
+                },
+                "unboundAction": {
+                    $Kind: csdl.CsdlKind.ActionImport,
+                    $Action: "self.unboundAction"
+                }
+            },
+            "OpenType": {
+                $Kind: csdl.CsdlKind.EntityType,
+                $OpenType: true
+            },
+            "Parent": {
+                $Kind: csdl.CsdlKind.EntityType,
+                $Key: ["id"],
+                "id": { $Type: "Edm.Int32" },
+                "strField": {},
+                "numberField": { $Type: "Edm.Int32", $Nullable: true },
+                "boolField": { $Type: "Edm.Boolean", $Nullable: true },
+                "dateField": { $Type: "Edm.DateTimeOffset", $Nullable: true },
+                "guid": { $Type: "Edm.Guid", $Nullable: true },
+                "complexType": { $Type: "self.ComplexType", $Nullable: true },
+                "enumField": { $Type: "self.TestEnum", $Nullable: true },
+                "childs": { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.Child", $Collection: true },
+                "entities": { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.TestEntity", $Collection: true }
+            },
+            "ParentEx": {
+                $Kind: csdl.CsdlKind.EntityType,
+                $BaseType: "self.Parent",
+                "exField": {}
+            },
+            "TestEntity": {
+                $Kind: csdl.CsdlKind.EntityType,
+                id: { $Type: "Edm.Int32" },
+                parentId: { $Type: "Edm.Int32" },
+                testEntityField: {}
+            },
+            "TestEnum": {
+                $Kind: csdl.CsdlKind.EnumType,
+                "Type1": 1,
+                "Type2": 2
+            },
+            "boundAction": [{
+                $Kind: csdl.CsdlKind.Action,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent" }
+                ]
+            }],
+            "colBoundFuncPrimitive": [{
+                $Kind: csdl.CsdlKind.Function,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent", $Collection: true, $Nullable: true }
+                ],
+                $ReturnType: { $Type: "Edm.String" }
+            }],
+            "colBoundAction": [{
+                $Kind: csdl.CsdlKind.Action,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent", $Collection: true, $Nullable: true }
+                ]
+            }],
+            "entityBoundFuncPrimitive": [{
+                $Kind: csdl.CsdlKind.Function,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent" }
+                ],
+                $ReturnType: { $Type: "Edm.String" }
+
+            }],
+            "entityBoundFuncComplexCol": [{
+                $Kind: csdl.CsdlKind.Function,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent" }
+                ],
+                $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
+
+            }],
+            "entityBoundFuncEntityCol": [{
+                $Kind: csdl.CsdlKind.Function,
+                $IsBound: true,
+                $Parameter: [
+                    { $Name: "bindingParameter", $Type: "self.Parent" }
+                ],
+                $ReturnType: { $Type: "self.Child", $Nullable: true, $Collection: true }
+            }],
+            "unboundFuncPrimitive": [{
+                $Kind: csdl.CsdlKind.Function,
+                $Parameter: [
+                    { $Name: "testArg" }
+                ],
+                $ReturnType: { $Type: "Edm.String" }
+            }],
+            "unboundFuncPrimitiveCol": [{
+                $Kind: csdl.CsdlKind.Function,
+                $ReturnType: { $Type: "Edm.String", $Nullable: true, $Collection: true }
+            }],
+            "unboundFuncComplex": [{
+                $Kind: csdl.CsdlKind.Function,
+                $ReturnType: { $Type: "self.ComplexType" }
+            }],
+            "unboundFuncComplexCol": [{
+                $Kind: csdl.CsdlKind.Function,
+                $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
+            }],
+            "unboundFuncEntity": [{
+                $Kind: csdl.CsdlKind.Function,
+                $ReturnType: { $Type: "self.Parent" }
+            }],
+            "unboundFuncEntityCol": [{
+                $Kind: csdl.CsdlKind.Function,
+                $ReturnType: { $Type: "self.Parent", $Nullable: true, $Collection: true }
+            }],
+            "unboundActionPrimitive": [{
+                $Kind: csdl.CsdlKind.Action,
+                $Parameter: [
+                    { $Name: "testArg" },
+                    { $Name: "num", $Type: "Edm.Int32" }
+                ],
+                $ReturnType: { $Type: "Edm.String" }
+            }],
+            "unboundActionPrimitiveCol": [{
+                $Kind: csdl.CsdlKind.Action,
+                $ReturnType: { $Type: "Edm.String", $Nullable: true, $Collection: true }
+            }],
+            "unboundActionComplex": [{
+                $Kind: csdl.CsdlKind.Action,
+                $ReturnType: { $Type: "self.ComplexType" }
+            }],
+            "unboundActionComplexCol": [{
+                $Kind: csdl.CsdlKind.Action,
+                $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
+            }],
+            "unboundActionEntity": [{
+                $Kind: csdl.CsdlKind.Action,
+                $ReturnType: { $Type: "self.Parent" }
+            }],
+            "unboundActionEntityCol": [{
+                $Kind: csdl.CsdlKind.Action,
+                $ReturnType: { $Type: "self.Parent", $Nullable: true, $Collection: true }
+            }],
+            "unboundAction": [{
+                $Kind: csdl.CsdlKind.Action
+            }],
         },
-        "ChildDetail": {
-            $Kind: csdl.CsdlKind.EntityType,
-            detailsId: { $Type: "Edm.Int32" },
-            childId: { $Type: "Edm.Int32" },
-            enumField: { $Type: "self.TestEnum", $Nullable: true }
-        },
-        "ComplexType": {
-            $Kind: csdl.CsdlKind.ComplexType,
-            "field": {}
-        },
-        "Container": {
-            $Kind: csdl.CsdlKind.EntityContainer,
-            "Parents": {
-                $Kind: csdl.CsdlKind.EntitySet,
-                $Type: "self.Parent"
-            },
-            "Childs": {
-                $Kind: csdl.CsdlKind.EntitySet,
-                $Type: "self.Child"
-            },
-            "OpenTypes": {
-                $Kind: csdl.CsdlKind.EntitySet,
-                $Type: "self.OpenType"
-            },
-            "TestEntities": {
-                $Kind: csdl.CsdlKind.EntitySet,
-                $Type: "self.TestEntity"
-            },
-            "Singleton": {
-                $Kind: csdl.CsdlKind.Singleton,
-                $Type: "self.Parent"
-            },
-            "unboundFuncPrimitive": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncPrimitive"
-            },
-            "unboundFuncPrimitiveCol": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncPrimitiveCol"
-            },
-            "unboundFuncComplex": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncComplex"
-            },
-            "unboundFuncComplexCol": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncComplexCol"
-            },
-            "unboundFuncEntity": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncEntity"
-            },
-            "unboundFuncEntityCol": {
-                $Kind: csdl.CsdlKind.FunctionImport,
-                $Function: "self.unboundFuncEntityCol"
-            },
-            "unboundActionPrimitive": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionPrimitive"
-            },
-            "unboundActionPrimitiveCol": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionPrimitiveCol"
-            },
-            "unboundActionComplex": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionComplex"
-            },
-            "unboundActionComplexCol": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionComplexCol"
-            },
-            "unboundActionEntity": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionEntity"
-            },
-            "unboundActionEntityCol": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundActionEntityCol"
-            },
-            "unboundAction": {
-                $Kind: csdl.CsdlKind.ActionImport,
-                $Action: "self.unboundAction"
+        "Namespace2": {
+            "Entity": {
+                $Kind: csdl.CsdlKind.ComplexType,
+                "id": {}
             }
-        },
-        "OpenType": {
-            $Kind: csdl.CsdlKind.EntityType,
-            $OpenType: true
-        },
-        "Parent": {
-            $Kind: csdl.CsdlKind.EntityType,
-            $Key: ["id"],
-            "id": { $Type: "Edm.Int32" },
-            "strField": {},
-            "numberField": { $Type: "Edm.Int32", $Nullable: true },
-            "boolField": { $Type: "Edm.Boolean", $Nullable: true },
-            "dateField": { $Type: "Edm.DateTimeOffset", $Nullable: true },
-            "guid": { $Type: "Edm.Guid", $Nullable: true },
-            "complexType": { $Type: "self.ComplexType", $Nullable: true },
-            "enumField": { $Type: "self.TestEnum", $Nullable: true },
-            "childs": { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.Child", $Collection: true },
-            "entities": { $Kind: csdl.CsdlKind.NavigationProperty, $Type: "self.TestEntity", $Collection: true }
-        },
-        "ParentEx": {
-            $Kind: csdl.CsdlKind.EntityType,
-            $BaseType: "self.Parent",
-            "exField": {}
-        },
-        "TestEntity": {
-            $Kind: csdl.CsdlKind.EntityType,
-            id: { $Type: "Edm.Int32" },
-            parentId: { $Type: "Edm.Int32" },
-            testEntityField: {}
-        },
-        "TestEnum": {
-            $Kind: csdl.CsdlKind.EnumType,
-            "Type1": 1,
-            "Type2": 2
-        },
-        "boundAction": [{
-            $Kind: csdl.CsdlKind.Action,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent" }
-            ]
-        }],
-        "colBoundFuncPrimitive": [{
-            $Kind: csdl.CsdlKind.Function,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent", $Collection: true, $Nullable: true }
-            ],
-            $ReturnType: { $Type: "Edm.String" }
-        }],
-        "colBoundAction": [{
-            $Kind: csdl.CsdlKind.Action,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent", $Collection: true, $Nullable: true }
-            ]
-        }],
-        "entityBoundFuncPrimitive": [{
-            $Kind: csdl.CsdlKind.Function,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent" }
-            ],
-            $ReturnType: { $Type: "Edm.String" }
-
-        }],
-        "entityBoundFuncComplexCol": [{
-            $Kind: csdl.CsdlKind.Function,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent" }
-            ],
-            $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
-
-        }],
-        "entityBoundFuncEntityCol": [{
-            $Kind: csdl.CsdlKind.Function,
-            $IsBound: true,
-            $Parameter: [
-                { $Name: "bindingParameter", $Type: "self.Parent" }
-            ],
-            $ReturnType: { $Type: "self.Child", $Nullable: true, $Collection: true }
-        }],
-        "unboundFuncPrimitive": [{
-            $Kind: csdl.CsdlKind.Function,
-            $Parameter: [
-                { $Name: "testArg" }
-            ],
-            $ReturnType: { $Type: "Edm.String" }
-        }],
-        "unboundFuncPrimitiveCol": [{
-            $Kind: csdl.CsdlKind.Function,
-            $ReturnType: { $Type: "Edm.String", $Nullable: true, $Collection: true }
-        }],
-        "unboundFuncComplex": [{
-            $Kind: csdl.CsdlKind.Function,
-            $ReturnType: { $Type: "self.ComplexType" }
-        }],
-        "unboundFuncComplexCol": [{
-            $Kind: csdl.CsdlKind.Function,
-            $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
-        }],
-        "unboundFuncEntity": [{
-            $Kind: csdl.CsdlKind.Function,
-            $ReturnType: { $Type: "self.Parent" }
-        }],
-        "unboundFuncEntityCol": [{
-            $Kind: csdl.CsdlKind.Function,
-            $ReturnType: { $Type: "self.Parent", $Nullable: true, $Collection: true }
-        }],
-        "unboundActionPrimitive": [{
-            $Kind: csdl.CsdlKind.Action,
-            $Parameter: [
-                { $Name: "testArg" },
-                { $Name: "num", $Type: "Edm.Int32" }
-            ],
-            $ReturnType: { $Type: "Edm.String" }
-        }],
-        "unboundActionPrimitiveCol": [{
-            $Kind: csdl.CsdlKind.Action,
-            $ReturnType: { $Type: "Edm.String", $Nullable: true, $Collection: true }
-        }],
-        "unboundActionComplex": [{
-            $Kind: csdl.CsdlKind.Action,
-            $ReturnType: { $Type: "self.ComplexType" }
-        }],
-        "unboundActionComplexCol": [{
-            $Kind: csdl.CsdlKind.Action,
-            $ReturnType: { $Type: "self.ComplexType", $Nullable: true, $Collection: true }
-        }],
-        "unboundActionEntity": [{
-            $Kind: csdl.CsdlKind.Action,
-            $ReturnType: { $Type: "self.Parent" }
-        }],
-        "unboundActionEntityCol": [{
-            $Kind: csdl.CsdlKind.Action,
-            $ReturnType: { $Type: "self.Parent", $Nullable: true, $Collection: true }
-        }],
-        "unboundAction": [{
-            $Kind: csdl.CsdlKind.Action
-        }],
-    },
-    "Namespace2": {
-        "Entity": {
-            $Kind: csdl.CsdlKind.ComplexType,
-            "id": {}
         }
     }
+    typeof csdl.setParents == "function" && csdl.setParents(md);
+    var typeCheck = md as csdl.MetadataDocument;
+    return md;
 };
-var typeCheck = metadata as csdl.MetadataDocument;
-typeof csdl.setParents == "function" && csdl.setParents(metadata);
-export { metadata };

@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import { assert } from "chai";
 import * as path from "path";
 import { PailingualFilterTransform } from "../pailingualFilterTransform";
-import { metadata } from "./models";
+import { createMetadata } from "./models";
 import { TestCase } from "./cases";
 import { csdl } from "pailingual-odata";
 
@@ -19,7 +19,6 @@ describe("Transform", function ()
     const compilerHost = ts.createCompilerHost(compilerOptions)
     const prg = ts.createProgram(["index.ts", testCasesFilePath], compilerOptions, compilerHost);
     const sf = prg.getSourceFile(testCasesFilePath);
-    const transform = new PailingualFilterTransform(metadata as csdl.MetadataDocument);
     
     const casesExport = sf.statements.find(s => ts.isExportAssignment(s)) as ts.ExportAssignment;
     const casesArray = (casesExport.expression as any).expression as ts.ArrayLiteralExpression;
@@ -36,12 +35,17 @@ describe("Transform", function ()
 
             //THIS CALL GENERATE TEST CASES
             if (props.expectedTransform)
-                testTransform(<string>props.name, <ts.ArrowFunction>props.expression, <string>props.expectedTransform);
+                testTransform(<string>props.name, <ts.ArrowFunction>props.expression, <string>props.expectedTransform, props.version as string);
         }
     }
 
-    function testTransform(name: string, expression: ts.ArrowFunction, expected: string) {
+    function createTransform(version = "4.0") {
+        return new PailingualFilterTransform(createMetadata(version) as csdl.MetadataDocument);
+    }
+
+    function testTransform(name: string, expression: ts.ArrowFunction, expected: string, version: string | undefined) {
         it(name, () => {
+            const transform = createTransform(version);
             transform.diagnostics = [];
             const transformFactory: ts.TransformerFactory<ts.Node> = transformationContext => {
                 const visitor = (n: ts.Node) => ts.visitEachChild(transform.transformExprToStr(n, { prg, transformationContext, file: sf}), visitor, transformationContext)
@@ -55,6 +59,7 @@ describe("Transform", function ()
     }
 
     it("add import serialization", () => {
+        const transform = createTransform();
         const expected = `import { serialization } from "pailingual-odata";\r\n`;
         const file = ts.createSourceFile("test.ts", "", ts.ScriptTarget.ESNext);
         const transformed: any = transform.transformExprToStr(file, { prg: null, needSerializeImportDeclaration: true, transformationContext: null, file});
@@ -64,6 +69,7 @@ describe("Transform", function ()
     });
 
     it("add import serialization to exists", () => {
+        const transform = createTransform();
         const src = `import { Entity } from \"pailingual-odata\"`
         const expected = `import { Entity, serialization } from \"pailingual-odata\";\r\n`;
         const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);
@@ -74,6 +80,7 @@ describe("Transform", function ()
     });
 
     it("add import serialization to exists 2", () => {
+        const transform = createTransform();
         const src = `import Pailingual from \"pailingual-odata\"`
         const expected = `import Pailingual, { serialization } from \"pailingual-odata\";\r\n`;
         const file = ts.createSourceFile("test.ts", src, ts.ScriptTarget.ESNext);

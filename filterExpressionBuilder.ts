@@ -64,9 +64,9 @@ function getParamsMetadata(params: Record<string, any>): ParameterProvider {
         getValue(p) {
             const val = params[p];
             return (curType, options) => {
-                var res: string | null = null;
+                var res = null;
                 if (Array.isArray(val))
-                    res = `(${val.map(v => serialization.serializeValue(v, curType, true, options)).join(',')})`
+                    res = val.map(v => serialization.serializeValue(v, curType, true, options));
                 else
                     res = serialization.serializeValue(val, curType, true, options);
                 return res || this.valueProvider.toString() as string;
@@ -79,7 +79,7 @@ class Expression {
     constructor(
         public readonly expression: string,
         public readonly type: csdl.EntityType | csdl.ComplexType | csdl.PrimitiveType | csdl.EnumType | undefined,
-        private readonly valueProvider?: ValueProvider,
+        public readonly valueProvider?: ValueProvider,
     ) { }
 
     toString(type: csdl.PrimitiveType | csdl.EntityType | csdl.EnumType | csdl.ComplexType | undefined, options: Options): string {
@@ -151,7 +151,7 @@ class Visitor {
         throw new Error("Return statement needed");
     }
 
-    operatorMap: Record<string, string> = {
+    operatorMap: Record<string, string | ((left: Expression, right: Expression, metadata: csdl.EntityType | csdl.ComplexType)=>string)> = {
         "==": "eq",
         "===": "eq",
         "!=": "ne",
@@ -160,7 +160,7 @@ class Visitor {
         ">=": "ge",
         "<": "lt",
         "<=": "le",
-        "in": "in",
+        "in": this.transformInExpression,
         "||": "or",
         "&&": "and",
         "!": "not",
@@ -170,7 +170,7 @@ class Visitor {
         "/":"divby"
     };
 
-    transformBinaryExpression(node: estree.BinaryExpression): Expression {
+    transformBinaryExpression(node: estree.BinaryExpression, metadata: csdl.EntityType | csdl.ComplexType): Expression {
         if (!(node.operator in this.operatorMap))
             throw new Error(`Not supported operator '${node.operator}'`)
 
@@ -179,12 +179,32 @@ class Visitor {
 
         let curType = leftExp.type || rightExp.type;
 
-        let left = leftExp.toString(curType, this.options);
-        let right = rightExp.toString(curType, this.options);
+        const operatorOrFunc = this.operatorMap[node.operator];
 
-        let resultExprStr = [left, this.operatorMap[node.operator], right].join(" ");
+        let resultExprStr = typeof operatorOrFunc == "string"
+            ? [
+                leftExp.toString(curType, this.options),
+                this.operatorMap[node.operator],
+                rightExp.toString(curType, this.options)
+            ].join(" ")
+            : operatorOrFunc.apply(this,[leftExp, rightExp, metadata]);
 
         return new Expression(resultExprStr, curType!);
+    }
+
+    transformInExpression(leftExp: Expression, rightExp: Expression, metadata: csdl.EntityType | csdl.ComplexType): string {
+        let curType = leftExp.type || rightExp.type;
+        let metadataDoc = csdl.getMetadataDocument(metadata);
+        const leftValue = leftExp.toString(curType!, this.options);
+        const rightValue = rightExp.valueProvider(curType as any, this.options);
+        if (metadataDoc.$Version === "4.0")
+            return "(" + (typeof rightValue === "function" ? rightValue(leftExp) : rightValue.map(v => `${leftValue} eq ${v}`).join(" or ")) + ")";
+        else
+            return [
+                leftExp.toString(curType, this.options),
+                "in",
+                "(" + rightValue.join(",") + ")"
+            ].join(" ");
     }
 
     transformParenthesizedExpression(node: estree.Node) {
@@ -227,7 +247,7 @@ class Visitor {
         return new Expression(
             "",
             undefined,
-            (t, o) => "(" + node.elements.map(e => this.transform(e).toString(t, o)).join(",")+")"
+            (t, o) => node.elements.map(e => this.transform(e).toString(t, o))
         )
     }
 

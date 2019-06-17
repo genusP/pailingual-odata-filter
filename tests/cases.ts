@@ -2,6 +2,7 @@ import { Context, Parent, TestEnum } from "./models";
 import { EntitySet, FilterExpression } from "pailingual-odata";
 
 export type TestCase = {
+    version?:"4.0"|"4.01",
     name: string,
     expression: (ctx: Context) => string,
     expectedUrl?: string,
@@ -207,17 +208,50 @@ export default [
     {
         name: "in operator",
         expression: ctx => ctx.Parents.$filter(e => e.strField in ["a", "b", "c"]).$url(),
+        expectedUrl: "/api/Parents?$filter=(strField eq 'a' or strField eq 'b' or strField eq 'c')",
+        expectedTransform: "ctx.Parents.$filter(\"(strField eq 'a' or strField eq 'b' or strField eq 'c')\").$url()"
+    },
+    {
+        name: "in operator 2",
+        expression: ctx => ctx.Parents.$filter(e => e.numberField in [1, 2, 3]).$url(),
+        expectedUrl: "/api/Parents?$filter=(numberField eq 1 or numberField eq 2 or numberField eq 3)",
+        expectedTransform: "ctx.Parents.$filter(\"(numberField eq 1 or numberField eq 2 or numberField eq 3)\").$url()"
+    },
+    {
+        name: "in operator with param",
+        expression: ctx => {
+            const list = ["a", "b", "c"];
+            return ctx.Parents.$filter((e, p) => e.strField in p.list, { list }).$url()
+        },
+        expectedUrl: "/api/Parents?$filter=(strField eq 'a' or strField eq 'b' or strField eq 'c')",
+        expectedTransform: "{\r\n    const list = [\"a\", \"b\", \"c\"];\r\n    return ctx.Parents.$filter(\"(\"+list.map(e=>\"strField eq \"+serialization.serializeValue(e, \"Edm.String\", true)).join(\" or \")+\")\", { list }).$url();\r\n}"
+    },
+    {
+        name: "in operator with param 2",
+        expression: ctx => {
+            const element = "c";
+            return ctx.Parents.$filter((e, p) => e.strField in ["a", "b", p.element], { element }).$url();
+        },
+        expectedUrl: "/api/Parents?$filter=(strField eq 'a' or strField eq 'b' or strField eq 'c')",
+        expectedTransform: "{\r\n    const element = \"c\";\r\n    return ctx.Parents.$filter(\"(strField eq 'a' or strField eq 'b' or strField eq \"+serialization.serializeValue(element, \"Edm.String\", true)+\")\", { element }).$url();\r\n}"
+    },
+    {
+        version: "4.01",
+        name: "4.01 in operator",
+        expression: ctx => ctx.Parents.$filter(e => e.strField in ["a", "b", "c"]).$url(),
         expectedUrl: "/api/Parents?$filter=strField in ('a','b','c')",
         expectedTransform: "ctx.Parents.$filter(\"strField in ('a','b','c')\").$url()"
     },
     {
-        name: "in operator 2",
+        version: "4.01",
+        name: "4.01 in operator 2",
         expression: ctx => ctx.Parents.$filter(e => e.numberField in [1, 2, 3]).$url(),
         expectedUrl: "/api/Parents?$filter=numberField in (1,2,3)",
         expectedTransform: "ctx.Parents.$filter(\"numberField in (1,2,3)\").$url()"
     },
     {
-        name: "in operator with param",
+        version: "4.01",
+        name: "4.01 in operator with param",
         expression: ctx => {
             const list = ["a", "b", "c"];
             return ctx.Parents.$filter((e, p) => e.strField in p.list, { list }).$url()
@@ -226,7 +260,8 @@ export default [
         expectedTransform: "{\r\n    const list = [\"a\", \"b\", \"c\"];\r\n    return ctx.Parents.$filter(\"strField in (\"+list.map(e=>serialization.serializeValue(e, \"Edm.String\", true))+\")\", { list }).$url();\r\n}"
     },
     {
-        name: "in operator with param 2",
+        version: "4.01",
+        name: "4.01 in operator with param 2",
         expression: ctx => {
             const element = "c";
             return ctx.Parents.$filter((e, p) => e.strField in ["a", "b", p.element], { element }).$url();

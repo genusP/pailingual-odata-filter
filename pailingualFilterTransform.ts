@@ -340,7 +340,9 @@ export default class PailingualFilterTransform {
                             var propertyType = ctx.prg.getTypeChecker().getTypeAtLocation(propertyAssignment);
                             var metadataType = _this.getValueMetadataType(type, node, ctx);
                             if (propertyType.symbol && propertyType.symbol.name == "Array")
-                                return `("+${initializer}.map(e=>serialization.serializeValue(e, ${metadataType}, true))+")`;
+                                return _this.metadata.$Version == "4.0"
+                                    ? exp => `"+${initializer}.map(e=>"${exp} eq "+serialization.serializeValue(e, ${metadataType}, true)).join(" or ")+"`
+                                    : [`"+${initializer}.map(e=>serialization.serializeValue(e, ${metadataType}, true))+"`];
                             else
                                 return `"+serialization.serializeValue(${initializer}, ${metadataType}, true)+"`;
                         }
